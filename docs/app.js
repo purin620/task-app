@@ -21,12 +21,12 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        return { events: [], tasks: [], timetable: {}, ...parsed };
+        return { events: [], tasks: [], timetable: {}, memos: {}, ...parsed };
       }
     } catch (e) {
       console.warn('データの読み込みに失敗しました', e);
     }
-    return { events: [], tasks: [], timetable: {} };
+    return { events: [], tasks: [], timetable: {}, memos: {} };
   }
 
   function saveStore() {
@@ -55,6 +55,7 @@
   const selectedDateLabel = document.getElementById('selectedDateLabel');
   const eventList = document.getElementById('eventList');
   const timetableList = document.getElementById('timetableList');
+  const memoInput = document.getElementById('memoInput');
   const taskList = document.getElementById('taskList');
   const taskForm = document.getElementById('taskForm');
   const todayPill = document.getElementById('todayPill');
@@ -202,6 +203,16 @@
         el.appendChild(tt);
       }
 
+      // メモ：先頭行だけ1行でプレビュー表示
+      const dayMemo = (store.memos && store.memos[dateStr]) ? store.memos[dateStr] : '';
+      if (dayMemo) {
+        const memoPreview = document.createElement('div');
+        memoPreview.className = 'day-memo-preview';
+        memoPreview.innerHTML = `<span>📝</span><span class="label"></span>`;
+        memoPreview.querySelector('.label').textContent = dayMemo.split('\n')[0];
+        el.appendChild(memoPreview);
+      }
+
       el.addEventListener('click', () => {
         selectedDate = dateStr;
         if (cell.otherMonth) {
@@ -296,6 +307,30 @@
       }
     }
   }
+
+  // ---------- Memo（日付ごとのメモ、カレンダーにも自動反映） ----------
+  function getMemo(dateStr) {
+    return (store.memos && store.memos[dateStr]) || '';
+  }
+
+  function setMemo(dateStr, value) {
+    if (!store.memos) store.memos = {};
+    if (value) {
+      store.memos[dateStr] = value;
+    } else {
+      delete store.memos[dateStr];
+    }
+    saveStore();
+  }
+
+  function renderMemo() {
+    memoInput.value = getMemo(selectedDate);
+  }
+
+  memoInput.addEventListener('input', () => {
+    setMemo(selectedDate, memoInput.value);
+    renderCalendar();
+  });
 
   function escapeHtml(str) {
     const div = document.createElement('div');
@@ -528,6 +563,7 @@
     renderCalendar();
     renderDayPanel();
     renderTimetable();
+    renderMemo();
     renderTasks();
   }
 
