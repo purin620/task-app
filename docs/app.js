@@ -112,24 +112,37 @@
     monthLabel.textContent = `${viewYear}年 ${viewMonth + 1}月`;
     calendarGrid.innerHTML = '';
 
-    const firstOfMonth = new Date(viewYear, viewMonth, 1);
-    const startWeekday = firstOfMonth.getDay(); // 0=Sun
     const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-    const daysInPrevMonth = new Date(viewYear, viewMonth, 0).getDate();
+    const isWeekend = (y, m, d) => { const dow = new Date(y, m, d).getDay(); return dow === 0 || dow === 6; };
 
-    const cells = [];
-    // leading days from previous month
-    for (let i = startWeekday - 1; i >= 0; i--) {
-      cells.push({ day: daysInPrevMonth - i, otherMonth: true, y: viewMonth === 0 ? viewYear - 1 : viewYear, m: viewMonth === 0 ? 11 : viewMonth - 1 });
-    }
-    // current month days
+    // 今月の平日（月〜金）のみ
+    const monthCells = [];
     for (let d = 1; d <= daysInMonth; d++) {
-      cells.push({ day: d, otherMonth: false, y: viewYear, m: viewMonth });
+      if (isWeekend(viewYear, viewMonth, d)) continue;
+      monthCells.push({ day: d, otherMonth: false, y: viewYear, m: viewMonth });
     }
-    // trailing days to complete the grid (multiple of 7)
-    let next = 1;
-    while (cells.length % 7 !== 0) {
-      cells.push({ day: next++, otherMonth: true, y: viewMonth === 11 ? viewYear + 1 : viewYear, m: viewMonth === 11 ? 0 : viewMonth + 1 });
+
+    // 月初の曜日列（月=0…金=4）に合わせて、前月末の平日を必要な分だけ前に詰める
+    const prevY = viewMonth === 0 ? viewYear - 1 : viewYear;
+    const prevM = viewMonth === 0 ? 11 : viewMonth - 1;
+    const firstDow = new Date(viewYear, viewMonth, monthCells[0].day).getDay(); // 1(月)〜5(金)
+    const leadCount = firstDow - 1;
+    const leading = [];
+    let pd = new Date(prevY, prevM + 1, 0).getDate();
+    while (leading.length < leadCount) {
+      if (!isWeekend(prevY, prevM, pd)) leading.unshift({ day: pd, otherMonth: true, y: prevY, m: prevM });
+      pd--;
+    }
+
+    const cells = [...leading, ...monthCells];
+
+    // グリッドを5列（月〜金）の倍数にするため、翌月頭の平日を必要な分だけ後ろに足す
+    const nextY = viewMonth === 11 ? viewYear + 1 : viewYear;
+    const nextM = viewMonth === 11 ? 0 : viewMonth + 1;
+    let nd = 1;
+    while (cells.length % 5 !== 0) {
+      if (!isWeekend(nextY, nextM, nd)) cells.push({ day: nd, otherMonth: true, y: nextY, m: nextM });
+      nd++;
     }
 
     const todayStr = toDateStr(new Date());

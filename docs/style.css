@@ -313,7 +313,7 @@ body {
 
 .weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   text-align: center;
   font-size: 11.5px;
   font-weight: 600;
@@ -321,12 +321,10 @@ body {
   margin-bottom: 6px;
   letter-spacing: 0.02em;
 }
-.weekdays .sun { color: #ef4444; }
-.weekdays .sat { color: #3b82f6; }
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   grid-auto-rows: minmax(84px, 1fr);
   gap: 6px;
 }
