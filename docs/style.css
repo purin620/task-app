@@ -392,6 +392,10 @@ body {
   background: var(--text-faint);
   color: var(--panel);
 }
+.day-badge.timetable-badge {
+  background: color-mix(in srgb, var(--warning) 55%, var(--panel-alt));
+  color: #fff;
+}
 .day-more {
   font-size: 10px;
   color: var(--text-faint);

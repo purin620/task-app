@@ -153,16 +153,20 @@
 
       const dayEvents = store.events.filter(e => e.date === dateStr);
       const dayTasks = store.tasks.filter(t => t.due === dateStr);
+      const dayTimetable = (store.timetable && store.timetable[dateStr]) ? store.timetable[dateStr].filter(v => v) : [];
       const items = [
-        ...dayEvents.map(e => ({ label: e.title, color: e.color })),
-        ...dayTasks.map(t => ({ label: t.title, isTask: true }))
+        ...dayEvents.map(e => ({ label: e.title, color: e.color }))
       ];
+      if (dayTimetable.length) {
+        items.push({ label: dayTimetable.join('・'), isTimetable: true });
+      }
+      items.push(...dayTasks.map(t => ({ label: t.title, isTask: true })));
       const maxShow = 3;
       items.slice(0, maxShow).forEach(it => {
         const b = document.createElement('div');
-        b.className = 'day-badge' + (it.isTask ? ' task-badge' : '');
-        if (!it.isTask) b.style.background = it.color;
-        b.textContent = (it.isTask ? '☑ ' : '') + it.label;
+        b.className = 'day-badge' + (it.isTask ? ' task-badge' : '') + (it.isTimetable ? ' timetable-badge' : '');
+        if (!it.isTask && !it.isTimetable) b.style.background = it.color;
+        b.textContent = (it.isTask ? '☑ ' : it.isTimetable ? '🕒 ' : '') + it.label;
         badges.appendChild(b);
       });
       if (items.length > maxShow) {
@@ -250,7 +254,10 @@
       `;
       const input = li.querySelector('input');
       input.value = entries[i] || '';
-      input.addEventListener('change', () => setTimetableEntry(selectedDate, i, input.value.trim()));
+      input.addEventListener('change', () => {
+        setTimetableEntry(selectedDate, i, input.value.trim());
+        renderCalendar();
+      });
       timetableList.appendChild(li);
 
       if (i + 1 === TIMETABLE_LUNCH_AFTER) {
