@@ -153,20 +153,16 @@
 
       const dayEvents = store.events.filter(e => e.date === dateStr);
       const dayTasks = store.tasks.filter(t => t.due === dateStr);
-      const dayTimetable = (store.timetable && store.timetable[dateStr]) ? store.timetable[dateStr].filter(v => v) : [];
       const items = [
-        ...dayEvents.map(e => ({ label: e.title, color: e.color }))
+        ...dayEvents.map(e => ({ label: e.title, color: e.color })),
+        ...dayTasks.map(t => ({ label: t.title, isTask: true }))
       ];
-      if (dayTimetable.length) {
-        items.push({ label: dayTimetable.join('・'), isTimetable: true });
-      }
-      items.push(...dayTasks.map(t => ({ label: t.title, isTask: true })));
       const maxShow = 3;
       items.slice(0, maxShow).forEach(it => {
         const b = document.createElement('div');
-        b.className = 'day-badge' + (it.isTask ? ' task-badge' : '') + (it.isTimetable ? ' timetable-badge' : '');
-        if (!it.isTask && !it.isTimetable) b.style.background = it.color;
-        b.textContent = (it.isTask ? '☑ ' : it.isTimetable ? '🕒 ' : '') + it.label;
+        b.className = 'day-badge' + (it.isTask ? ' task-badge' : '');
+        if (!it.isTask) b.style.background = it.color;
+        b.textContent = (it.isTask ? '☑ ' : '') + it.label;
         badges.appendChild(b);
       });
       if (items.length > maxShow) {
@@ -176,6 +172,22 @@
         badges.appendChild(more);
       }
       el.appendChild(badges);
+
+      // 時間割：1〜6時限のうち入力済みのものを省略せず全部表示（給食は表示しない）
+      const dayTimetable = (store.timetable && store.timetable[dateStr]) ? store.timetable[dateStr] : null;
+      if (dayTimetable && dayTimetable.some(v => v)) {
+        const tt = document.createElement('div');
+        tt.className = 'day-timetable-mini';
+        dayTimetable.forEach((val, i) => {
+          if (!val) return;
+          const row = document.createElement('div');
+          row.className = 'day-timetable-row';
+          row.innerHTML = `<span class="num">${i + 1}</span><span class="label"></span>`;
+          row.querySelector('.label').textContent = val;
+          tt.appendChild(row);
+        });
+        el.appendChild(tt);
+      }
 
       el.addEventListener('click', () => {
         selectedDate = dateStr;

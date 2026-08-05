@@ -392,9 +392,34 @@ body {
   background: var(--text-faint);
   color: var(--panel);
 }
-.day-badge.timetable-badge {
-  background: color-mix(in srgb, var(--warning) 55%, var(--panel-alt));
-  color: #fff;
+.day-timetable-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 1px;
+  padding-top: 3px;
+  border-top: 1px dashed var(--border-soft);
+}
+.day-timetable-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 9.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.day-timetable-row .num {
+  flex-shrink: 0;
+  width: 11px;
+  text-align: center;
+  font-weight: 800;
+  color: var(--warning);
+}
+.day-timetable-row .label {
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .day-more {
   font-size: 10px;
