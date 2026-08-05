@@ -46,13 +46,16 @@ http://localhost:3000
 calendar-task-app/
 ├── server.js          # Express サーバー（静的ファイル配信）
 ├── package.json
-└── public/
+└── docs/
     ├── index.html
     ├── style.css
     └── app.js          # カレンダー・タスクのロジック（localStorageに保存）
 ```
 
+## GitHub Pages での公開
+このアプリはサーバー側にAPIを持たず、データもすべてブラウザの localStorage に保存する構成のため、`docs/` フォルダをそのまま GitHub Pages で公開できます（リポジトリの Settings → Pages → Source を `main` ブランチの `/docs` に設定）。
+
 ## 補足
 
 - データはブラウザ単位（localStorageのため）で保存されます。別のブラウザ／別のPCでは共有されません。
-- Node.js を入れずに試したい場合、`public/index.html` を直接ブラウザで開いても動作します（ただし一部ブラウザではセキュリティ設定によりローカルファイルの動作が制限されることがあります。その場合は Node.js での起動をおすすめします）。
+- Node.js を入れずに試したい場合、`docs/index.html` を直接ブラウザで開いても動作します（ただし一部ブラウザではセキュリティ設定によりローカルファイルの動作が制限されることがあります。その場合は Node.js での起動をおすすめします）。
