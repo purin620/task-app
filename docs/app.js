@@ -226,19 +226,55 @@
   const eventModal = document.getElementById('eventModal');
   const eventForm = document.getElementById('eventForm');
   const modalTitle = document.getElementById('modalTitle');
+  const eventCategoryInput = document.getElementById('eventCategory');
   const eventTitleInput = document.getElementById('eventTitle');
   const eventDateInput = document.getElementById('eventDate');
   const eventTimeInput = document.getElementById('eventTime');
   const eventNoteInput = document.getElementById('eventNote');
   const deleteEventBtn = document.getElementById('deleteEventBtn');
 
+  // 種類ごとの既定色（選択すると自動でこの色に切り替わる。あとから手動で変更も可）
+  const CATEGORY_COLORS = {
+    '教員の業務': '#6366f1',
+    '職員会議': '#0ea5e9',
+    '分掌部会': '#a855f7',
+    '学部会': '#16a34a',
+    '研究日': '#f59e0b'
+  };
+
   document.getElementById('addEventBtn').addEventListener('click', () => openEventModal(selectedDate));
   document.getElementById('cancelEventBtn').addEventListener('click', closeEventModal);
   eventModal.addEventListener('click', (e) => { if (e.target === eventModal) closeEventModal(); });
 
+  eventCategoryInput.addEventListener('change', () => {
+    const val = eventCategoryInput.value;
+    if (val === '__custom') {
+      eventTitleInput.value = '';
+      eventTitleInput.focus();
+      return;
+    }
+    if (val) {
+      eventTitleInput.value = val;
+      const color = CATEGORY_COLORS[val];
+      if (color) {
+        const radio = document.querySelector(`input[name="eventColor"][value="${color}"]`);
+        if (radio) radio.checked = true;
+      }
+      eventTitleInput.focus();
+    }
+  });
+
   function openEventModal(dateStr, existing) {
     editingEventId = existing ? existing.id : null;
     modalTitle.textContent = existing ? '予定を編集' : '予定を追加';
+    const presetTitles = Object.keys(CATEGORY_COLORS);
+    if (existing && presetTitles.includes(existing.title)) {
+      eventCategoryInput.value = existing.title;
+    } else if (existing) {
+      eventCategoryInput.value = '__custom';
+    } else {
+      eventCategoryInput.value = '';
+    }
     eventTitleInput.value = existing ? existing.title : '';
     eventDateInput.value = dateStr;
     eventTimeInput.value = existing ? (existing.time || '') : '';

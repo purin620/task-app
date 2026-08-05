@@ -113,6 +113,17 @@
   <div class="modal">
     <h3 id="modalTitle">予定を追加</h3>
     <form id="eventForm">
+      <label>種類
+        <select id="eventCategory">
+          <option value="">— 選択（任意） —</option>
+          <option value="教員の業務">教員の業務</option>
+          <option value="職員会議">職員会議</option>
+          <option value="分掌部会">分掌部会</option>
+          <option value="学部会">学部会</option>
+          <option value="研究日">研究日</option>
+          <option value="__custom">その他（自由入力）</option>
+        </select>
+      </label>
       <label>タイトル
         <input type="text" id="eventTitle" required maxlength="120" placeholder="例）打ち合わせ">
       </label>

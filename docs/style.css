@@ -706,7 +706,7 @@ body {
   font-weight: 600;
   color: var(--text-muted);
 }
-.modal input, .modal textarea {
+.modal input, .modal textarea, .modal select {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 9px 11px;
@@ -715,7 +715,10 @@ body {
   color: var(--text);
   background: var(--panel-alt);
 }
-.modal input:focus, .modal textarea:focus {
+.modal select {
+  cursor: pointer;
+}
+.modal input:focus, .modal textarea:focus, .modal select:focus {
   outline: none;
   border-color: var(--accent);
 }
