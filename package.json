@@ -1,0 +1,12 @@
+{
+  "name": "calendar-task-app",
+  "version": "1.0.0",
+  "description": "予定表とタスク管理ができるローカルWebアプリ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
