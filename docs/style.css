@@ -526,6 +526,28 @@ body {
   margin-top: 1px;
 }
 
+.memo-item {
+  align-items: flex-start;
+  background: color-mix(in srgb, var(--warning) 10%, var(--panel-alt));
+  border: 1px dashed color-mix(in srgb, var(--warning) 35%, var(--border-soft));
+}
+.memo-item:hover {
+  background: color-mix(in srgb, var(--warning) 16%, var(--panel-alt));
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border-soft));
+}
+.memo-dot {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 13px;
+}
+.memo-meta {
+  white-space: pre-line;
+  overflow: visible;
+  text-overflow: unset;
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

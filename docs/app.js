@@ -236,13 +236,29 @@
     const dayEvents = store.events
       .filter(e => e.date === selectedDate)
       .sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+    const dayMemo = getMemo(selectedDate);
 
-    if (dayEvents.length === 0) {
+    if (dayEvents.length === 0 && !dayMemo) {
       const li = document.createElement('li');
       li.className = 'empty-state';
       li.innerHTML = `<span class="empty-icon">🗓️</span><span class="empty-text">予定はありません</span>`;
       eventList.appendChild(li);
       return;
+    }
+
+    if (dayMemo) {
+      const li = document.createElement('li');
+      li.className = 'event-item memo-item';
+      li.innerHTML = `
+        <span class="event-dot memo-dot">📝</span>
+        <span class="event-info">
+          <span class="title">メモ</span>
+          <span class="meta memo-meta"></span>
+        </span>
+      `;
+      li.querySelector('.memo-meta').textContent = dayMemo;
+      li.addEventListener('click', () => memoInput.focus());
+      eventList.appendChild(li);
     }
 
     dayEvents.forEach(ev => {
@@ -330,6 +346,7 @@
   memoInput.addEventListener('input', () => {
     setMemo(selectedDate, memoInput.value);
     renderCalendar();
+    renderDayPanel();
   });
 
   function escapeHtml(str) {
