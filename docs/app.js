@@ -187,9 +187,9 @@
       }
       el.appendChild(badges);
 
-      // 時間割：1〜6時限のうち入力済みのものを省略せず全部表示（給食は表示しない）
-      const dayTimetable = (store.timetable && store.timetable[dateStr]) ? store.timetable[dateStr] : null;
-      if (dayTimetable && dayTimetable.some(v => v)) {
+      // 時間割：1〜6時限のうち入力済みのものを省略せず全部表示（給食は表示しない）。未編集の日は曜日の既定パターンを表示。
+      const dayTimetable = getTimetableEntries(dateStr);
+      if (dayTimetable.some(v => v)) {
         const tt = document.createElement('div');
         tt.className = 'day-timetable-mini';
         dayTimetable.forEach((val, i) => {
@@ -281,14 +281,29 @@
   const TIMETABLE_LUNCH_AFTER = 4; // この時限の直後に給食を挟む（時数には含めない）
   const TIMETABLE_PRESETS = ['朝の会', 'リズム', '制作', '課題', '体操', '掃除・帰りの会', 'わっしょいタイム', 'なかよし会', '委員会', 'プール', 'クラブ'];
 
+  // 基本の週間パターン（曜日ごとの既定値）。個別の日で選び直せば、その日だけ上書きされる。
+  // 配列の添字は時限-1（0=1時限目 … 5=6時限目）。getDay()の値: 1=月,2=火,3=水,4=木,5=金
+  const TIMETABLE_WEEKLY_TEMPLATE = {
+    1: ['', 'リズム', '', '', '体操', '掃除・帰りの会'],          // 月曜
+    2: ['', 'わっしょいタイム', '', '', '体操', '掃除・帰りの会'], // 火曜
+    3: ['', '', '', '', '体操', '掃除・帰りの会'],                // 水曜
+    4: ['', 'リズム', '', '', '体操', '掃除・帰りの会'],          // 木曜
+    5: ['', '', 'わっしょいタイム', '', '体操', '掃除・帰りの会']  // 金曜
+  };
+
+  function getWeeklyTemplate(dateStr) {
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    return (TIMETABLE_WEEKLY_TEMPLATE[dow] || Array(TIMETABLE_PERIOD_COUNT).fill('')).slice();
+  }
+
   function getTimetableEntries(dateStr) {
     if (store.timetable && store.timetable[dateStr]) return store.timetable[dateStr];
-    return Array(TIMETABLE_PERIOD_COUNT).fill('');
+    return getWeeklyTemplate(dateStr);
   }
 
   function setTimetableEntry(dateStr, index, value) {
     if (!store.timetable) store.timetable = {};
-    if (!store.timetable[dateStr]) store.timetable[dateStr] = Array(TIMETABLE_PERIOD_COUNT).fill('');
+    if (!store.timetable[dateStr]) store.timetable[dateStr] = getWeeklyTemplate(dateStr);
     store.timetable[dateStr][index] = value;
     if (store.timetable[dateStr].every(v => !v)) delete store.timetable[dateStr];
     saveStore();
