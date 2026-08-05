@@ -19,11 +19,14 @@
   function loadStore() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return { events: [], tasks: [], timetable: {}, ...parsed };
+      }
     } catch (e) {
       console.warn('データの読み込みに失敗しました', e);
     }
-    return { events: [], tasks: [] };
+    return { events: [], tasks: [], timetable: {} };
   }
 
   function saveStore() {
@@ -51,6 +54,7 @@
   const calendarGrid = document.getElementById('calendarGrid');
   const selectedDateLabel = document.getElementById('selectedDateLabel');
   const eventList = document.getElementById('eventList');
+  const timetableList = document.getElementById('timetableList');
   const taskList = document.getElementById('taskList');
   const taskForm = document.getElementById('taskForm');
   const todayPill = document.getElementById('todayPill');
@@ -214,6 +218,51 @@
       li.addEventListener('click', () => openEventModal(ev.date, ev));
       eventList.appendChild(li);
     });
+  }
+
+  // ---------- Timetable (1日6時限＋4時限目の後に給食) ----------
+  const TIMETABLE_PERIOD_COUNT = 6;
+  const TIMETABLE_LUNCH_AFTER = 4; // この時限の直後に給食を挟む（時数には含めない）
+
+  function getTimetableEntries(dateStr) {
+    if (store.timetable && store.timetable[dateStr]) return store.timetable[dateStr];
+    return Array(TIMETABLE_PERIOD_COUNT).fill('');
+  }
+
+  function setTimetableEntry(dateStr, index, value) {
+    if (!store.timetable) store.timetable = {};
+    if (!store.timetable[dateStr]) store.timetable[dateStr] = Array(TIMETABLE_PERIOD_COUNT).fill('');
+    store.timetable[dateStr][index] = value;
+    if (store.timetable[dateStr].every(v => !v)) delete store.timetable[dateStr];
+    saveStore();
+  }
+
+  function renderTimetable() {
+    timetableList.innerHTML = '';
+    const entries = getTimetableEntries(selectedDate);
+
+    for (let i = 0; i < TIMETABLE_PERIOD_COUNT; i++) {
+      const li = document.createElement('li');
+      li.className = 'timetable-row';
+      li.innerHTML = `
+        <span class="timetable-period">${i + 1}時限目</span>
+        <input type="text" class="timetable-input" maxlength="60" placeholder="教科・内容">
+      `;
+      const input = li.querySelector('input');
+      input.value = entries[i] || '';
+      input.addEventListener('change', () => setTimetableEntry(selectedDate, i, input.value.trim()));
+      timetableList.appendChild(li);
+
+      if (i + 1 === TIMETABLE_LUNCH_AFTER) {
+        const lunch = document.createElement('li');
+        lunch.className = 'timetable-row timetable-lunch';
+        lunch.innerHTML = `
+          <span class="timetable-period">給食</span>
+          <span class="timetable-lunch-label">🍙 給食の時間（時数には含みません）</span>
+        `;
+        timetableList.appendChild(lunch);
+      }
+    }
   }
 
   function escapeHtml(str) {
@@ -446,6 +495,7 @@
   function renderAll() {
     renderCalendar();
     renderDayPanel();
+    renderTimetable();
     renderTasks();
   }
 

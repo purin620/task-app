@@ -512,6 +512,56 @@ body {
 .empty-state .empty-icon { font-size: 24px; opacity: 0.7; }
 .empty-state .empty-text { font-size: 12.5px; font-weight: 500; }
 
+/* ---------- Timetable ---------- */
+.timetable-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.timetable-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  background: var(--panel-alt);
+}
+.timetable-period {
+  flex-shrink: 0;
+  width: 62px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+.timetable-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 3px 0;
+}
+.timetable-input::placeholder { color: var(--text-faint); }
+.timetable-input:focus {
+  outline: none;
+}
+.timetable-row.timetable-lunch {
+  background: color-mix(in srgb, var(--warning) 12%, var(--panel-alt));
+  border-color: color-mix(in srgb, var(--warning) 30%, var(--border-soft));
+}
+.timetable-row.timetable-lunch .timetable-period { color: var(--warning); }
+.timetable-lunch-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 /* ---------- Tasks ---------- */
 .task-form {
   display: flex;
