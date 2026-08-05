@@ -279,6 +279,7 @@
   // ---------- Timetable (1日6時限＋4時限目の後に給食) ----------
   const TIMETABLE_PERIOD_COUNT = 6;
   const TIMETABLE_LUNCH_AFTER = 4; // この時限の直後に給食を挟む（時数には含めない）
+  const TIMETABLE_PRESETS = ['朝の会', 'リズム', '制作', '課題', '体操', '掃除・帰りの会', 'わっしょいタイム', 'なかよし会', '委員会', 'プール', 'クラブ'];
 
   function getTimetableEntries(dateStr) {
     if (store.timetable && store.timetable[dateStr]) return store.timetable[dateStr];
@@ -297,19 +298,54 @@
     timetableList.innerHTML = '';
     const entries = getTimetableEntries(selectedDate);
 
+    const optionsHtml = ['<option value="">— 選択 —</option>']
+      .concat(TIMETABLE_PRESETS.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`))
+      .concat(['<option value="__custom">自由入力</option>'])
+      .join('');
+
     for (let i = 0; i < TIMETABLE_PERIOD_COUNT; i++) {
       const li = document.createElement('li');
       li.className = 'timetable-row';
       li.innerHTML = `
         <span class="timetable-period">${i + 1}時限目</span>
-        <input type="text" class="timetable-input" maxlength="60" placeholder="教科・内容">
+        <div class="timetable-field">
+          <select class="timetable-select">${optionsHtml}</select>
+          <input type="text" class="timetable-input hidden" maxlength="60" placeholder="内容を入力">
+        </div>
       `;
+      const select = li.querySelector('select');
       const input = li.querySelector('input');
-      input.value = entries[i] || '';
-      input.addEventListener('change', () => {
+      const current = entries[i] || '';
+
+      if (!current) {
+        select.value = '';
+      } else if (TIMETABLE_PRESETS.includes(current)) {
+        select.value = current;
+      } else {
+        select.value = '__custom';
+        input.classList.remove('hidden');
+        input.value = current;
+      }
+
+      select.addEventListener('change', () => {
+        if (select.value === '__custom') {
+          input.classList.remove('hidden');
+          input.value = '';
+          input.focus();
+          setTimetableEntry(selectedDate, i, '');
+        } else {
+          input.classList.add('hidden');
+          input.value = '';
+          setTimetableEntry(selectedDate, i, select.value);
+        }
+        renderCalendar();
+      });
+
+      input.addEventListener('input', () => {
         setTimetableEntry(selectedDate, i, input.value.trim());
         renderCalendar();
       });
+
       timetableList.appendChild(li);
 
       if (i + 1 === TIMETABLE_LUNCH_AFTER) {

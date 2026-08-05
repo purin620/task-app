@@ -586,19 +586,39 @@ body {
   font-weight: 700;
   color: var(--text-muted);
 }
-.timetable-input {
+.timetable-field {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.timetable-select {
+  width: 100%;
   border: none;
   background: transparent;
   color: var(--text);
   font-family: inherit;
   font-size: 13px;
   padding: 3px 0;
+  cursor: pointer;
+}
+.timetable-select:focus { outline: none; }
+.timetable-input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
 }
 .timetable-input::placeholder { color: var(--text-faint); }
 .timetable-input:focus {
   outline: none;
+  border-color: var(--accent);
 }
 .timetable-row.timetable-lunch {
   background: color-mix(in srgb, var(--warning) 12%, var(--panel-alt));
