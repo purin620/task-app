@@ -21,12 +21,12 @@
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        return { events: [], tasks: [], timetable: {}, memos: {}, ...parsed };
+        return { events: [], tasks: [], timetable: {}, memos: {}, children: ['児童1', '児童2', '児童3'], childNotes: {}, ...parsed };
       }
     } catch (e) {
       console.warn('データの読み込みに失敗しました', e);
     }
-    return { events: [], tasks: [], timetable: {}, memos: {} };
+    return { events: [], tasks: [], timetable: {}, memos: {}, children: ['児童1', '児童2', '児童3'], childNotes: {} };
   }
 
   function saveStore() {
@@ -59,6 +59,7 @@
   const taskList = document.getElementById('taskList');
   const taskForm = document.getElementById('taskForm');
   const todayPill = document.getElementById('todayPill');
+  const childNotesGrid = document.getElementById('childNotesGrid');
 
   // ---------- Theme ----------
   const THEME_KEY = 'calendarTaskApp.theme';
@@ -400,6 +401,65 @@
     renderDayPanel();
   });
 
+  // ---------- 児童ごとの予定（3人ぶん。名前は共通、予定は日付ごと） ----------
+  const CHILD_COUNT = 3;
+
+  function getChildNames() {
+    if (!Array.isArray(store.children) || store.children.length !== CHILD_COUNT) {
+      store.children = Array.from({ length: CHILD_COUNT }, (_, i) => `児童${i + 1}`);
+      saveStore();
+    }
+    return store.children;
+  }
+
+  function setChildName(index, value) {
+    getChildNames();
+    store.children[index] = value;
+    saveStore();
+  }
+
+  function getChildNotes(dateStr) {
+    const notes = (store.childNotes && store.childNotes[dateStr]) || [];
+    return Array.from({ length: CHILD_COUNT }, (_, i) => notes[i] || '');
+  }
+
+  function setChildNote(dateStr, index, value) {
+    if (!store.childNotes) store.childNotes = {};
+    if (!store.childNotes[dateStr]) store.childNotes[dateStr] = Array(CHILD_COUNT).fill('');
+    store.childNotes[dateStr][index] = value;
+    if (store.childNotes[dateStr].every(v => !v)) delete store.childNotes[dateStr];
+    saveStore();
+  }
+
+  function renderChildNotes() {
+    childNotesGrid.innerHTML = '';
+    const names = getChildNames();
+    const notes = getChildNotes(selectedDate);
+
+    names.forEach((name, i) => {
+      const card = document.createElement('div');
+      card.className = 'child-note-card';
+      card.innerHTML = `
+        <input type="text" class="child-name-input" maxlength="20" placeholder="児童${i + 1}の名前">
+        <textarea class="child-note-textarea" rows="4" maxlength="500" placeholder="この日の予定を入力…"></textarea>
+      `;
+
+      const nameInput = card.querySelector('.child-name-input');
+      const textarea = card.querySelector('.child-note-textarea');
+      nameInput.value = name;
+      textarea.value = notes[i];
+
+      nameInput.addEventListener('input', () => {
+        setChildName(i, nameInput.value);
+      });
+      textarea.addEventListener('input', () => {
+        setChildNote(selectedDate, i, textarea.value);
+      });
+
+      childNotesGrid.appendChild(card);
+    });
+  }
+
   function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str ?? '';
@@ -633,6 +693,7 @@
     renderTimetable();
     renderMemo();
     renderTasks();
+    renderChildNotes();
   }
 
   renderAll();
