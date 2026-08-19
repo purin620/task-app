@@ -110,6 +110,16 @@ body {
   padding: 28px 32px 56px;
 }
 
+/* ホーム画面から起動した際（フルスクリーン表示）に、ノッチや丸角と重ならないようにする */
+@supports (padding: max(0px)) {
+  .app {
+    padding-top: max(28px, env(safe-area-inset-top));
+    padding-left: max(32px, env(safe-area-inset-left));
+    padding-right: max(32px, env(safe-area-inset-right));
+    padding-bottom: max(56px, env(safe-area-inset-bottom));
+  }
+}
+
 /* ---------- Header ---------- */
 .app-header {
   display: flex;
