@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>しゅご・じゅつご スロット</title>
+<style>
+  :root{
+    --bg1:#fff7d6; --bg2:#ffd9ec; --bg3:#d6f0ff;
+    --subj:#2f8fff; --subj-d:#1667d6;
+    --pred:#ff5aa5; --pred-d:#e03d89;
+    --ink:#3a2c1a; --card:#ffffff;
+    --shadow:0 10px 0 rgba(0,0,0,.12), 0 18px 30px rgba(0,0,0,.18);
+    font-family:"Hiragino Maru Gothic ProN","ヒラギノ丸ゴ ProN","Rounded Mplus 1c","Yu Gothic",'Meiryo',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; color:var(--ink);
+    background:linear-gradient(135deg,var(--bg1),var(--bg2) 45%,var(--bg3));
+    background-attachment:fixed; min-height:100%;
+    display:flex; flex-direction:column; align-items:center; overflow-x:hidden;
+    -webkit-user-select:none; user-select:none;
+  }
+  .modal, .modal *{ -webkit-user-select:auto; user-select:auto; }
+
+  /* ---- ながおし（せんせい用ボタン） ---- */
+  .lp{ position:relative; overflow:hidden; }
+  .lp::after{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:0;
+    background:rgba(255,255,255,.45); pointer-events:none; transition:width .12s linear;
+  }
+  .lp.lp-holding::after{ width:100%; transition:width 2s linear; }
+  .lp.lp-done{ filter:brightness(1.25) saturate(1.15); }
+  .btn2.teacher{
+    background:linear-gradient(#9a94b0,#7d7796);
+    font-size:13px; padding:10px 16px; box-shadow:0 5px 0 rgba(0,0,0,.15);
+  }
+  .teachernote{
+    margin-top:10px; font-size:11px; color:#8a8296; font-weight:800;
+    display:flex; align-items:center; justify-content:center; gap:6px; text-align:center;
+  }
+  @keyframes attract{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  .spinbtn.attract{
+    animation:attract .7s ease-in-out 4;
+    box-shadow:0 10px 0 #c96b00, 0 0 0 6px rgba(255,207,63,.7), 0 16px 24px rgba(0,0,0,.25);
+  }
+  h1{
+    font-size:clamp(22px,5vw,40px); margin:14px 10px 4px; text-align:center;
+    text-shadow:2px 2px 0 #fff, 4px 4px 0 rgba(0,0,0,.12); letter-spacing:.02em;
+  }
+  .sub{font-size:14px; opacity:.75; margin-bottom:6px; text-align:center; padding:0 12px;}
+
+  /* ---- slot machine ---- */
+  .machine{
+    background:linear-gradient(#ffb04a,#ff7a00);
+    border-radius:30px; padding:20px 22px 24px; margin:8px 12px 0;
+    box-shadow:0 12px 0 #c25200, 0 22px 36px rgba(0,0,0,.25);
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap; justify-content:center;
+    border:4px solid #ffd94a;
+  }
+  .reelcol{display:flex; flex-direction:column; align-items:center; gap:8px;}
+  .rlabel{
+    font-size:15px; font-weight:900; color:#fff; padding:4px 14px; border-radius:999px;
+    box-shadow:0 4px 0 rgba(0,0,0,.15);
+  }
+  .rlabel.s{background:var(--subj);}
+  .rlabel.p{background:var(--pred);}
+
+  .reel{
+    position:relative; height:150px; width:clamp(150px,42vw,220px);
+    overflow:hidden; border-radius:16px; background:#fff;
+    box-shadow:inset 0 0 0 4px #ffd94a, inset 0 12px 20px rgba(0,0,0,.14), inset 0 -12px 20px rgba(0,0,0,.14);
+  }
+  .reel::after{
+    content:""; position:absolute; inset:0; pointer-events:none; border-radius:16px;
+    background:linear-gradient(rgba(0,0,0,.22),transparent 24%,transparent 76%,rgba(0,0,0,.22));
+  }
+  .strip{will-change:transform;}
+  .cell{height:150px; display:flex; align-items:center; justify-content:center; padding:8px;}
+
+  .scell{display:flex; flex-direction:column; align-items:center; gap:6px;}
+  .sphoto{width:92px; height:92px; border-radius:50%; object-fit:cover; border:3px solid var(--subj);}
+  .sname{font-size:19px; font-weight:900; color:var(--subj-d); text-align:center; line-height:1.1;}
+  .scell.nophoto .sname{font-size:clamp(24px,7vw,32px);}
+
+  .pcell{display:flex; flex-direction:column; align-items:center; gap:4px;}
+  .pemj{font-size:46px; line-height:1;}
+  .pw{font-size:clamp(18px,5.4vw,26px); font-weight:900; color:var(--pred-d); text-align:center; line-height:1.1;}
+
+  .pslot{font-size:28px; font-weight:900; color:#fff; align-self:center; text-shadow:0 3px 0 rgba(0,0,0,.2);}
+
+  .lever{
+    position:relative; width:34px; height:130px; border:none; background:transparent;
+    cursor:pointer; align-self:center; transform-origin:50% 100%; transition:transform .18s;
+  }
+  .lever::before{
+    content:""; position:absolute; left:50%; bottom:0; width:10px; height:100%;
+    transform:translateX(-50%); background:linear-gradient(#eee,#8a8a8a); border-radius:6px;
+    box-shadow:0 3px 6px rgba(0,0,0,.3);
+  }
+  .lever .knob{
+    position:absolute; left:50%; top:-4px; width:34px; height:34px; transform:translateX(-50%);
+    background:radial-gradient(circle at 35% 30%,#ff8a8a,#c0392b); border-radius:50%;
+    box-shadow:0 5px 10px rgba(0,0,0,.4);
+  }
+  .lever.pulled{transform:rotate(24deg);}
+
+  .spinbtn{
+    margin:20px auto 6px; font-size:clamp(22px,5vw,34px); font-weight:900;
+    color:#fff; border:none; cursor:pointer; padding:18px 44px; border-radius:999px;
+    background:linear-gradient(#ffb43f,#ff8a00);
+    box-shadow:0 10px 0 #c96b00, 0 16px 24px rgba(0,0,0,.25);
+    transition:transform .08s, box-shadow .08s, filter .2s; letter-spacing:.06em;
+  }
+  .spinbtn:active{transform:translateY(8px); box-shadow:0 2px 0 #c96b00, 0 6px 12px rgba(0,0,0,.25);}
+  .spinbtn:disabled{filter:grayscale(.5) brightness(.9); cursor:default;}
+
+  .result{
+    margin:8px 12px 24px; width:min(680px,94vw); background:var(--card);
+    border-radius:26px; box-shadow:var(--shadow); padding:18px 16px 20px;
+    text-align:center; border:4px solid #fff; position:relative;
+  }
+  .sentence{
+    display:flex; flex-wrap:wrap; gap:8px 10px; justify-content:center; align-items:flex-end;
+    font-size:clamp(24px,6vw,44px); font-weight:900; min-height:1.6em;
+  }
+  .chip{
+    padding:8px 16px; border-radius:16px; color:#fff; box-shadow:0 5px 0 rgba(0,0,0,.18);
+    display:inline-flex; flex-direction:column; align-items:center; line-height:1.15;
+    cursor:default; pointer-events:none;
+  }
+  .chip.s{background:var(--subj);}
+  .chip.p{background:var(--pred);}
+  .chip .ct{font-size:.4em; font-weight:800; letter-spacing:.08em; opacity:.95; margin-bottom:3px;}
+  .chip .cw{display:flex; align-items:center;}
+  .chip.s .cw img.cimg{width:1.1em; height:1.1em; border-radius:50%; object-fit:cover; margin-right:.18em; border:2px solid #fff;}
+  .particle{opacity:.85; font-size:.7em; align-self:center;}
+  .bang{color:#ff8a00; align-self:center;}
+  .placeholder{opacity:.4; font-weight:700; cursor:default;}
+
+  /* ---- learning box ---- */
+  .learn{margin-top:14px; background:#fff8e6; border:2px dashed #ffcf3f; border-radius:18px; padding:14px 12px 16px;}
+  .learn[hidden]{display:none;}
+  .scene{font-size:clamp(34px,11vw,52px); margin-bottom:8px; line-height:1;}
+  .scene img.sceneimg{width:1.05em; height:1.05em; border-radius:50%; object-fit:cover; vertical-align:-.18em;}
+  .qa{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    font-size:clamp(16px,4.4vw,22px); font-weight:900; margin:5px 0;
+  }
+  .qa .q{color:#7a5c00;}
+  .qa .arrow{opacity:.5;}
+  .qa .a{padding:2px 12px; border-radius:10px; color:#fff;}
+  .qa .a.s{background:var(--subj);}
+  .qa .a.p{background:var(--pred);}
+  .rule{font-size:13px; line-height:1.8; color:#6b5a2e; margin:10px 4px 12px;}
+  .rule b.s{color:var(--subj-d);}
+  .rule b.p{color:var(--pred-d);}
+  .taphint{font-size:13px; font-weight:800; color:#e0007a; margin:6px 0 12px; min-height:1.4em;}
+
+  .quizbtn{
+    font-family:inherit; font-size:16px; font-weight:900; border:none; cursor:pointer;
+    padding:11px 22px; border-radius:999px; color:#fff;
+    background:linear-gradient(#ff7ac0,#e8409a); box-shadow:0 6px 0 rgba(0,0,0,.18);
+  }
+  .quizbtn:active{transform:translateY(4px); box-shadow:0 2px 0 rgba(0,0,0,.18);}
+  .quizbtn.teacher{ background:linear-gradient(#9a94b0,#7d7796); font-size:14px; padding:10px 18px; }
+  .quizbox{margin-top:14px;}
+  .quizbox[hidden]{display:none;}
+  .quizq{font-size:clamp(16px,4.6vw,21px); font-weight:900; color:#7a5c00; margin-bottom:12px;}
+  .quizopts{display:flex; gap:16px; justify-content:center; flex-wrap:wrap;}
+  @keyframes shk{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}60%{transform:translateX(7px)}}
+  .qopt2{
+    font-family:inherit; cursor:pointer; border:3px solid #ffcf3f; background:#fff;
+    border-radius:18px; box-shadow:0 5px 0 rgba(0,0,0,.15);
+    padding:14px 18px 12px; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:132px;
+  }
+  .qopt2:active{transform:translateY(4px); box-shadow:0 1px 0 rgba(0,0,0,.15);}
+  .qopt2 .qoptemj{font-size:58px; line-height:1;}
+  .qopt2 .qoptimg{width:94px; height:94px; border-radius:50%; object-fit:cover; border:3px solid var(--subj);}
+  .qopt2 .qoptname{font-size:19px; font-weight:900; color:var(--subj-d);}
+  .qopt2.ok{background:#4bc46b; border-color:#2f9e51;}
+  .qopt2.ok .qoptname{color:#fff;}
+  .qopt2.ng{background:#ff7a7a; border-color:#d94b4b; animation:shk .32s;}
+  .qopt2.ng .qoptname{color:#fff;}
+  .quizmsg{min-height:1.6em; font-weight:800; margin-top:12px; font-size:clamp(15px,4vw,19px); color:#e0007a;}
+
+  .reaction{font-size:clamp(18px,4.4vw,26px); font-weight:800; margin-top:12px; min-height:1.4em; color:#e0007a;}
+
+  .actionrow{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:14px;}
+  .btn2{
+    font-size:16px; font-weight:800; border:none; cursor:pointer; padding:12px 20px;
+    border-radius:999px; color:#fff; box-shadow:0 6px 0 rgba(0,0,0,.18);
+    transition:transform .07s, box-shadow .07s;
+  }
+  .btn2:active{transform:translateY(5px); box-shadow:0 1px 0 rgba(0,0,0,.18);}
+  .btn-read{background:linear-gradient(#4bc46b,#28a349);}
+  .btn-again{background:linear-gradient(#ffb43f,#ff8a00);}
+  .btn-set{background:linear-gradient(#8a7bff,#6a55e0);}
+
+  .stars{
+    position:fixed; top:10px; right:12px; background:#fff; border-radius:999px;
+    padding:6px 14px; font-weight:900; font-size:16px; box-shadow:0 6px 14px rgba(0,0,0,.2); z-index:20;
+  }
+
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:16px;}
+  .overlay.open{display:flex;}
+  .modal{background:#fff; border-radius:24px; width:min(620px,96vw); max-height:90vh; overflow:auto; padding:20px; box-shadow:0 20px 50px rgba(0,0,0,.4);}
+  .modal h2{margin:0 0 6px; font-size:22px;}
+  .modal p.hint{margin:0 0 14px; font-size:13px; opacity:.7;}
+  .editgrid{display:flex; gap:16px; flex-wrap:wrap;}
+  .editcol{flex:1 1 260px; display:flex; flex-direction:column;}
+  .editcol > label{font-weight:800; margin-bottom:8px;}
+
+  .slot{display:grid; grid-template-columns:48px 1fr auto auto; gap:8px; align-items:center; margin-bottom:12px;}
+  .thumb{width:48px; height:48px; border-radius:50%; background:#eee; background-size:cover; background-position:center; display:flex; align-items:center; justify-content:center; font-size:22px; border:2px solid #ddd;}
+  .slot input.sname{font-family:inherit; font-size:15px; padding:9px; border:2px solid #ddd; border-radius:10px; min-width:0;}
+  .slot .pick, .slot .clrimg{font-family:inherit; font-size:12px; font-weight:800; border:none; border-radius:999px; padding:9px 10px; cursor:pointer; background:#8a7bff; color:#fff; white-space:nowrap;}
+  .slot .clrimg{background:#eee; color:#777;}
+  .slot .clrimg:disabled{opacity:.4; cursor:default;}
+
+  .pslotrow{display:grid; grid-template-columns:54px 1fr 40px; gap:8px; align-items:center; margin-bottom:8px;}
+  .pslotrow input.pemoji{font-size:22px; text-align:center; padding:8px 2px; border:2px solid #ddd; border-radius:10px; min-width:0;}
+  .pslotrow input.pword{font-family:inherit; font-size:15px; padding:9px; border:2px solid #ddd; border-radius:10px; min-width:0;}
+  .pslotrow .delp{border:none; background:#eee; color:#777; font-weight:900; border-radius:10px; padding:10px 0; cursor:pointer;}
+  .addbtn{font-family:inherit; font-size:13px; font-weight:800; border:none; cursor:pointer; padding:9px 14px; border-radius:999px; background:#8a7bff; color:#fff; align-self:flex-start; margin-top:4px;}
+  .hint2{font-size:12px; opacity:.65; margin:8px 0 0; line-height:1.6;}
+
+  .voicebox{margin:14px 0 4px; border:2px solid #eee; border-radius:14px; padding:12px 14px;}
+  .vrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
+  .vrow label{font-weight:800; font-size:14px; white-space:nowrap;}
+  .vrow select{font-family:inherit; font-size:14px; padding:8px 10px; border:2px solid #ddd; border-radius:10px; flex:1 1 180px; min-width:0;}
+  .vtest{font-family:inherit; font-size:13px; font-weight:800; border:none; cursor:pointer; padding:9px 14px; border-radius:999px; background:#4bc46b; color:#fff; white-space:nowrap;}
+
+  .opts{display:flex; gap:20px; flex-wrap:wrap; margin:14px 0 4px;}
+  .opts fieldset{border:2px solid #eee; border-radius:14px; padding:8px 14px;}
+  .opts legend{font-weight:800; padding:0 6px;}
+  .opts label{margin-right:12px; font-size:15px; cursor:pointer;}
+  .modalbtns{display:flex; gap:10px; justify-content:flex-end; margin-top:14px; flex-wrap:wrap;}
+  .modalbtns button{font-size:15px; font-weight:800; border:none; cursor:pointer; padding:11px 20px; border-radius:999px;}
+  .m-save{background:#28a349; color:#fff;}
+  .m-cancel{background:#eee; color:#555;}
+  .m-reset{background:#ffdede; color:#c0392b; margin-right:auto;}
+
+  #confetti{position:fixed; inset:0; pointer-events:none; z-index:40;}
+  .toast{
+    position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(18px);
+    background:#28a349; color:#fff; font-weight:900; font-size:16px;
+    padding:13px 26px; border-radius:999px; box-shadow:0 10px 24px rgba(0,0,0,.3);
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; z-index:60; text-align:center;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast.warn{background:#e67e22;}
+  .footer{font-size:12px; opacity:.5; margin:0 0 16px; text-align:center; padding:0 12px;}
+
+  .sharebox{margin:12px 0 2px;}
+  .sharebtn{
+    font-family:inherit; font-size:15px; font-weight:900; border:none; cursor:pointer;
+    padding:12px 18px; border-radius:14px; width:100%; color:#fff;
+    background:linear-gradient(#5aa9ff,#2f7fe0); box-shadow:0 5px 0 rgba(0,0,0,.15);
+  }
+  .sharebtn:active{transform:translateY(4px); box-shadow:0 1px 0 rgba(0,0,0,.15);}
+  .qrmodal{max-width:420px; text-align:center;}
+  #qrBox{
+    display:flex; align-items:center; justify-content:center;
+    min-height:240px; margin:14px 0; font-size:13px; font-weight:800; color:#c0392b; line-height:1.7;
+  }
+  #qrBox img, #qrBox canvas{width:240px; height:240px;}
+  .qrurl{font-size:12px; word-break:break-all; color:#555; background:#f3f3f3; border-radius:10px; padding:8px 10px; margin:0 0 6px;}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars">⭐ 0</div>
+
+<h1>しゅご・じゅつご スロット</h1>
+<div class="sub">スロットを まわして ぶんを つくろう！　じゅつごは え（イラスト）で いみが わかるよ</div>
+
+<div class="machine">
+  <div class="reelcol">
+    <div class="rlabel s">だれが？（しゅご）</div>
+    <div class="reel" id="reelS"></div>
+  </div>
+  <div class="pslot" id="pslot">が</div>
+  <div class="reelcol">
+    <div class="rlabel p">どうする？（じゅつご）</div>
+    <div class="reel" id="reelP"></div>
+  </div>
+  <button class="lever" id="lever" aria-label="レバー"><span class="knob"></span></button>
+</div>
+
+<button class="spinbtn" id="spin">まわす！</button>
+
+<div class="result">
+  <div class="sentence" id="sentence">
+    <span class="placeholder">「まわす！」を おしてね</span>
+  </div>
+  <div class="learn" id="learn" hidden></div>
+  <div class="reaction" id="reaction"></div>
+  <div class="actionrow">
+    <button class="btn2 teacher" id="read">🔒 よむ</button>
+    <button class="btn2 teacher" id="again">🔒 もういっかい</button>
+    <button class="btn2 teacher" id="openSet">🔒 ことばを かえる</button>
+  </div>
+  <div class="teachernote">🔒 は せんせい用：ながおし（2びょう）で うごきます</div>
+</div>
+
+<div class="footer">「ことばを かえる」で しゅご（5つまで・しゃしんOK）と じゅつご（え も じゆうに）を かえられるよ</div>
+
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>ことばを じゆうに かえる</h2>
+    <p class="hint">しゅごは 5つまで（しゃしんOK）。じゅつごは え と ことばを セットで。かえたら 下の「💾 ほぞんする」を おしてね（つぎ ひらいても のこります）。</p>
+    <div class="editgrid">
+      <div class="editcol">
+        <label>しゅご（だれが）— 5つまで</label>
+        <div id="subjSlots"></div>
+      </div>
+      <div class="editcol">
+        <label>じゅつご（どうする）— 12こまで</label>
+        <div id="predSlots"></div>
+        <button type="button" id="predAdd" class="addbtn">＋ じゅつごを ふやす</button>
+        <p class="hint2">ひだりの え を タップして、すきな えもじに かえられます（キーボードの えもじ／Windowsは Win＋. ）。ことばを かくと え を じどうで えらびます。</p>
+      </div>
+    </div>
+    <div class="opts">
+      <fieldset>
+        <legend>なまえの あと</legend>
+        <label><input type="radio" name="suffix" value=""> なし</label>
+        <label><input type="radio" name="suffix" value="くん"> くん</label>
+        <label><input type="radio" name="suffix" value="ちゃん"> ちゃん</label>
+        <label><input type="radio" name="suffix" value="さん"> さん</label>
+      </fieldset>
+      <fieldset>
+        <legend>じょし</legend>
+        <label><input type="radio" name="particle" value="が"> が</label>
+        <label><input type="radio" name="particle" value="は"> は</label>
+      </fieldset>
+    </div>
+    <div class="voicebox">
+      <div class="vrow">
+        <label for="voiceSel">こえ（おんせい）</label>
+        <select id="voiceSel"></select>
+        <button type="button" id="voiceTest" class="vtest">🔊 ためす</button>
+      </div>
+      <div class="vrow">
+        <label for="rateSel">よむ はやさ</label>
+        <select id="rateSel">
+          <option value="0.8">ゆっくり</option>
+          <option value="1">ふつう</option>
+          <option value="1.15">はやめ</option>
+        </select>
+      </div>
+      <p class="hint2">「✨しぜん」と ついた こえが いちばん にんげんっぽいよ。ない ときは Windowsの「せってい → じかんと言語 → おんせい」で 日本語の しぜんな こえ（Nanami など）を ついかできます。えらぶと すぐ ほぞんされます。</p>
+    </div>
+    <div class="sharebox">
+      <button type="button" id="qrOpen" class="sharebtn">📱 この アプリの QRコード（きょうゆう）</button>
+    </div>
+    <div class="modalbtns">
+      <button class="m-reset" id="mReset">さいしょに もどす</button>
+      <button class="m-cancel" id="mCancel">やめる</button>
+      <button class="m-save" id="mSave">💾 ほぞんする</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="qrOverlay">
+  <div class="modal qrmodal">
+    <h2>QRコードで きょうゆう</h2>
+    <p class="hint">ロイロノート の カメラ（QRコード）で よみとると、この アプリが ひらきます。</p>
+    <div id="qrBox"></div>
+    <p class="qrurl" id="qrUrl"></p>
+    <div class="modalbtns">
+      <button type="button" id="qrCopy" class="m-cancel">🔗 リンクを コピー</button>
+      <button type="button" id="qrSave" class="m-save">💾 QRを ほぞん（PNG）</button>
+      <button type="button" id="qrClose" class="m-cancel">とじる</button>
+    </div>
+    <p class="hint2" id="qrNote"></p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+"use strict";
+
+const MAX_S = 5, MAX_P = 12, CELL = 150, FALLBACK_EMOJI = "✨";
+
+/* ---------- え（えもじ）じてん ---------- */
+const EMOJI = {
+  /* しゅご */
+  "ねこ":"🐱","いぬ":"🐶","ぞう":"🐘","きょうりゅう":"🦖","ロボット":"🤖","おうさま":"🤴","おうじ":"🤴",
+  "おひめさま":"👸","あかちゃん":"👶","パンダ":"🐼","うちゅうじん":"👽","おばけ":"👻","カエル":"🐸","かえる":"🐸",
+  "せんせい":"🧑‍🏫","うさぎ":"🐰","くま":"🐻","とり":"🐦","さかな":"🐟","りゅう":"🐉","ライオン":"🦁","ぶた":"🐷",
+  "ねずみ":"🐭","こども":"🧒","ママ":"👩","パパ":"👨","おともだち":"🧑","かめ":"🐢","へび":"🐍","はち":"🐝","ちょうちょ":"🦋",
+  /* じゅつご */
+  "とぶ":"🕊️","とびたつ":"🛫","はねる":"⤴️","とびはねる":"⤴️","ジャンプする":"🤸","じゃんぷする":"🤸",
+  "あるく":"🚶","はしる":"🏃","かける":"🏃","およぐ":"🏊","もぐる":"🤿","のぼる":"🧗","おりる":"🪜",
+  "おどる":"💃","うたう":"🎤","わらう":"😄","なく":"😭","おこる":"😠","おどろく":"😲","よろこぶ":"🥳","こわがる":"😱",
+  "ねむる":"😴","ねる":"😴","おきる":"⏰","ゆめをみる":"💤",
+  "たべる":"🍚","のむ":"🥤","かむ":"🦷","なめる":"👅",
+  "みる":"👀","きく":"👂","はなす":"💬","よぶ":"📣","かんがえる":"💭","おぼえる":"🧠","わすれる":"🌀",
+  "かく":"✏️","よむ":"📖","えをかく":"🎨","うたをうたう":"🎵",
+  "なげる":"⚾","うつ":"🏏","ける":"🦵","つかむ":"✊","おす":"🫸","ひく":"🫳","もつ":"🤲","はこぶ":"📦",
+  "あそぶ":"🧸","つくる":"🔨","こわす":"💥","なおす":"🩹","あらう":"🧼","そうじする":"🧹","かたづける":"🧺",
+  "てつだう":"🤝","たすける":"🆘","まもる":"🛡️","おしえる":"🧑‍🏫","さがす":"🔎","みつける":"💡",
+  "ころぶ":"🤕","ぶつかる":"💥","すべる":"🛝","おちる":"🫙","たおれる":"🌪️",
+  "へんしんする":"🦸","ひかる":"🌟","もえる":"🔥","きえる":"🫥","ふえる":"➕","へる":"➖",
+  "すわる":"🪑","たつ":"🧍","ねころぶ":"🛏️","まつ":"⏳","はじまる":"🚦","おわる":"🏁",
+  "わたる":"🌉","かえる(帰る)":"🏠","でかける":"🚪","かくれる":"🫣","おならをする":"💨","くしゃみをする":"🤧"
+};
+function emojiFor(w){ return EMOJI[w] || ""; }
+
+/* じゅつごを かこけい っぽく（クイズの もんだいぶん よう） */
+const PAST = {
+  "とぶ":"とんだ","とびたつ":"とびたった","はねる":"はねた","とびはねる":"とびはねた","ジャンプする":"ジャンプした",
+  "あるく":"あるいた","はしる":"はしった","かける":"かけた","およぐ":"およいだ","もぐる":"もぐった",
+  "のぼる":"のぼった","おりる":"おりた","おどる":"おどった","うたう":"うたった","わらう":"わらった",
+  "なく":"ないた","おこる":"おこった","おどろく":"おどろいた","よろこぶ":"よろこんだ","こわがる":"こわがった",
+  "ねむる":"ねむった","ねる":"ねた","おきる":"おきた","たべる":"たべた","のむ":"のんだ",
+  "みる":"みた","きく":"きいた","はなす":"はなした","かんがえる":"かんがえた","かく":"かいた","よむ":"よんだ",
+  "なげる":"なげた","うつ":"うった","ける":"けった","つかむ":"つかんだ","おす":"おした","ひく":"ひいた",
+  "もつ":"もった","はこぶ":"はこんだ","あそぶ":"あそんだ","つくる":"つくった","こわす":"こわした",
+  "あらう":"あらった","そうじする":"そうじした","かたづける":"かたづけた","てつだう":"てつだった",
+  "たすける":"たすけた","まもる":"まもった","おしえる":"おしえた","さがす":"さがした","みつける":"みつけた",
+  "ころぶ":"ころんだ","ぶつかる":"ぶつかった","すべる":"すべった","おちる":"おちた","たおれる":"たおれた",
+  "へんしんする":"へんしんした","ひかる":"ひかった","もえる":"もえた","すわる":"すわった","たつ":"たった",
+  "まつ":"まった","わたる":"わたった","でかける":"でかけた","かくれる":"かくれた",
+  "おならをする":"おならをした","くしゃみをする":"くしゃみをした"
+};
+function pastish(w){
+  if(PAST[w]) return PAST[w];
+  if(w.endsWith("する")) return w.slice(0,-2) + "した";
+  return w;
+}
+
+/* クイズの はずれ せんたくし よう（しゅごが すくない ときの よび） */
+const DISTRACT = [
+  {name:"うさぎ",emoji:"🐰"},{name:"くま",emoji:"🐻"},{name:"パンダ",emoji:"🐼"},
+  {name:"とり",emoji:"🐦"},{name:"さかな",emoji:"🐟"},{name:"カエル",emoji:"🐸"},
+  {name:"ぞう",emoji:"🐘"},{name:"ライオン",emoji:"🦁"}
+];
+
+/* ---------- ていぎ ＆ ほぞん ---------- */
+const DEFAULT_S = ["ねこ","いぬ","ぞう","うさぎ","くま"];
+const DEFAULT_P = [
+  {word:"とぶ",emoji:"🕊️"},{word:"ねむる",emoji:"😴"},{word:"わらう",emoji:"😄"},
+  {word:"はしる",emoji:"🏃"},{word:"おどる",emoji:"💃"},{word:"たべる",emoji:"🍚"},
+  {word:"なく",emoji:"😭"},{word:"うたう",emoji:"🎤"},{word:"ジャンプする",emoji:"🤸"},
+  {word:"ころぶ",emoji:"🤕"},{word:"へんしんする",emoji:"🦸"},{word:"およぐ",emoji:"🏊"}
+];
+
+const LS = { s:"sp_subjects2", p:"sp_predicates2", suf:"sp_suffix", par:"sp_particle", star:"sp_stars", voice:"sp_voice", rate:"sp_rate" };
+
+function load(key, fb){ try{ const v=localStorage.getItem(key); return v===null?fb:JSON.parse(v); }catch(e){ return fb; } }
+function save(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); return true; }catch(e){ return false; } }
+
+function normSubjects(raw){
+  let out = [];
+  if(Array.isArray(raw)){
+    out = raw.slice(0,MAX_S).map(x=> typeof x==="string"
+      ? {name:x, img:""}
+      : {name:String((x&&x.name)||""), img:String((x&&x.img)||"")}
+    ).filter(e=>e.name.length>0);
+  }
+  return out.length ? out : DEFAULT_S.map(n=>({name:n,img:""}));
+}
+function normPredicates(raw){
+  let out = [];
+  if(Array.isArray(raw)){
+    out = raw.slice(0,MAX_P).map(x=>{
+      if(typeof x === "string") return { word:x, emoji: emojiFor(x) || FALLBACK_EMOJI };
+      const word = String((x&&x.word)||"");
+      const emoji = String((x&&x.emoji)||"") || emojiFor(word) || FALLBACK_EMOJI;
+      return { word, emoji };
+    }).filter(e=>e.word.length>0);
+  }
+  return out.length ? out : DEFAULT_P.map(e=>({...e}));
+}
+
+let subjects = normSubjects(load(LS.s, null));
+let predicates = normPredicates(load(LS.p, null));
+let suffix = load(LS.suf, "くん");
+let particle = load(LS.par, "が");
+let stars = load(LS.star, 0);
+let voicePref = load(LS.voice, "");      // "" = おすすめ（じどう）
+let speakRate = load(LS.rate, 1);
+
+const sentenceEl = document.getElementById("sentence");
+const learnEl = document.getElementById("learn");
+const reactionEl = document.getElementById("reaction");
+const spinBtn = document.getElementById("spin");
+const starsEl = document.getElementById("stars");
+const leverEl = document.getElementById("lever");
+const pslotEl = document.getElementById("pslot");
+
+let spinning = false, lastSentence = "";
+let lastPick = null;      // {sObj, pObj, suf}
+let quiz = null;          // {done, ans}
+let autoQuizTimer = null; // スロットが とまった あと じどうで クイズへ
+
+function escapeHtml(s){ return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+function escapeAttr(s){ return String(s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+/* ---------- こえ（えらべる／できるだけ しぜんな にんげんっぽい こえ） ---------- */
+let jaVoices = [];
+let jaVoice = null;
+
+function bestVoiceScore(v){
+  const n = (v.name || "").toLowerCase();
+  let s = 0;
+  if(/natural|neural/.test(n)) s += 120;         // Windows/Edge の しぜんな（ニューラル）こえ
+  if(n.includes("online")) s += 30;
+  if(/nanami|ayumi|keita|masako|shiori/.test(n)) s += 45;  // Windows 日本語ボイス
+  if(n.includes("google")) s += 40;             // Chrome の Google 日本語
+  if(/kyoko|otoya|o-ren|siri/.test(n)) s += 35; // Mac / iOS
+  if(!v.localService) s += 15;                  // クラウド系は たいてい高品質
+  return s;
+}
+
+function refreshVoices(){
+  if(!("speechSynthesis" in window)) return;
+  const all = window.speechSynthesis.getVoices() || [];
+  jaVoices = all.filter(v => /^ja\b|ja[-_]JP/i.test(v.lang) || /japan|日本/i.test(v.name));
+  jaVoices.sort((a,b)=> bestVoiceScore(b) - bestVoiceScore(a));
+
+  let chosen = null;
+  if(voicePref) chosen = jaVoices.find(v => (v.voiceURI || v.name) === voicePref) || null;
+  jaVoice = chosen || jaVoices[0] || null;
+
+  populateVoiceSelect();
+}
+
+function populateVoiceSelect(){
+  const sel = document.getElementById("voiceSel");
+  if(!sel) return;
+  if(!jaVoices.length){
+    sel.innerHTML = `<option value="">にほんごの こえが みつかりません</option>`;
+    return;
+  }
+  let html = `<option value="">おすすめ（じどう）</option>`;
+  html += jaVoices.map(v=>{
+    const id = v.voiceURI || v.name;
+    const tag = /natural|neural/i.test(v.name) ? "　✨しぜん" : "";
+    return `<option value="${escapeAttr(id)}">${escapeHtml(v.name)}${tag}</option>`;
+  }).join("");
+  sel.innerHTML = html;
+  sel.value = voicePref || "";
+}
+
+if("speechSynthesis" in window){
+  refreshVoices();
+  window.speechSynthesis.onvoiceschanged = refreshVoices;
+}
+
+function speak(text){
+  if(!("speechSynthesis" in window)) return;
+  try{
+    window.speechSynthesis.cancel();
+    if(!jaVoice) refreshVoices();
+    let t = String(text).trim();
+    if(t && !/[。．.！!？?、,〜ー]$/.test(t)) t += "。";   // ぶんまつを つけて しぜんな よみに
+    const u = new SpeechSynthesisUtterance(t);
+    u.voice = jaVoice || null;
+    u.lang  = (jaVoice && jaVoice.lang) || "ja-JP";
+    u.rate  = speakRate || 1;
+    u.pitch = 1.0;    // しぜんな たかさ
+    u.volume = 1.0;
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+/* ---------- reels ---------- */
+function subjCell(e){
+  if(e.img) return `<div class="scell"><img class="sphoto" src="${escapeAttr(e.img)}" alt=""><div class="sname">${escapeHtml(e.name)}</div></div>`;
+  const em = emojiFor(e.name);
+  return `<div class="scell nophoto"><div class="sname">${em?em+" ":""}${escapeHtml(e.name)}</div></div>`;
+}
+function predCell(e){
+  return `<div class="pcell"><div class="pemj">${e.emoji||FALLBACK_EMOJI}</div><div class="pw">${escapeHtml(e.word)}</div></div>`;
+}
+
+function buildStrip(reelEl, items, renderCell, loops){
+  const seq = [];
+  for(let l=0;l<loops;l++) for(let i=0;i<items.length;i++) seq.push(i);
+  const strip = document.createElement("div");
+  strip.className = "strip";
+  strip.innerHTML = seq.map(i=>`<div class="cell">${renderCell(items[i])}</div>`).join("");
+  reelEl.innerHTML = "";
+  reelEl.appendChild(strip);
+  return { el:reelEl, strip, len:items.length, loops, pos:0 };
+}
+let reelS = null, reelP = null;
+function buildReels(){
+  reelS = buildStrip(document.getElementById("reelS"), subjects, subjCell, 14);
+  reelP = buildStrip(document.getElementById("reelP"), predicates, predCell, 9);
+  reelS.strip.style.transform = "translateY(0)";
+  reelP.strip.style.transform = "translateY(0)";
+  pslotEl.textContent = particle;
+}
+function spinReel(r, chosen, durMs){
+  const start = chosen % r.len;
+  r.strip.style.transition = "none";
+  r.strip.style.transform = `translateY(${-start*CELL}px)`;
+  void r.strip.offsetHeight;
+  const target = (r.loops-2)*r.len + chosen;
+  r.strip.style.transition = `transform ${durMs}ms cubic-bezier(.1,.72,.16,1)`;
+  r.strip.style.transform = `translateY(${-target*CELL}px)`;
+  r.pos = target;
+}
+function normalizeReel(r){
+  const n = ((r.pos % r.len)+r.len) % r.len;
+  r.strip.style.transition = "none";
+  r.strip.style.transform = `translateY(${-n*CELL}px)`;
+  r.pos = n;
+}
+
+/* ---------- audio ---------- */
+let actx = null;
+function ac(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return actx; }
+function beep(freq,dur,type,vol){
+  const c=ac(); if(!c) return;
+  const o=c.createOscillator(), g=c.createGain();
+  o.type=type||"square"; o.frequency.value=freq; g.gain.value=vol||0.05;
+  o.connect(g); g.connect(c.destination);
+  const t=c.currentTime; o.start(t);
+  g.gain.setValueAtTime(g.gain.value,t);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+(dur||0.1));
+  o.stop(t+(dur||0.1)+0.02);
+}
+function tickSound(){ beep(680+Math.random()*160,0.035,"square",0.028); }
+function cheerSound(){ [523,659,784,1046].forEach((fr,i)=>setTimeout(()=>beep(fr,0.18,"triangle",0.06),i*90)); }
+
+/* ---------- spin ---------- */
+const REACTIONS = [
+  "おおー！ すごい！","くすっ🤭 おもしろい！","うける〜！ www","なるほど〜！","ぷぷっ！ へんなの！",
+  "いいね！ ✨","びっくり！ 😲","たのしい ぶんだね！","もういっかい やってみよう！","はなまる💮！"
+];
+
+function spin(){
+  if(spinning) return;
+  if(subjects.length===0 || predicates.length===0){
+    alert("ことばが ありません。「ことばを かえる」で ついかしてね。"); return;
+  }
+  spinning = true; spinBtn.disabled = true;
+  leverEl.classList.add("pulled");
+  setTimeout(()=>leverEl.classList.remove("pulled"), 480);
+
+  quiz = null;
+  clearTimeout(autoQuizTimer);
+  reactionEl.textContent = "";
+  learnEl.hidden = true;
+  sentenceEl.innerHTML = '<span class="placeholder">スロット かいてん ちゅう…</span>';
+  if(ac() && ac().state==="suspended") ac().resume();
+
+  const iS = Math.floor(Math.random()*subjects.length);
+  const iP = Math.floor(Math.random()*predicates.length);
+  spinReel(reelS, iS, 2600);
+  spinReel(reelP, iP, 3400);
+
+  let ticks = 0;
+  const tickTimer = setInterval(()=>{ tickSound(); if(++ticks>44) clearInterval(tickTimer); }, 85);
+
+  setTimeout(()=>{ normalizeReel(reelS); beep(500,0.12,"triangle",0.06); }, 2650);
+  setTimeout(()=>{
+    clearInterval(tickTimer);
+    normalizeReel(reelP);
+    finishSpin(subjects[iS], predicates[iP]);
+    spinning = false; spinBtn.disabled = false;
+  }, 3450);
+}
+
+function finishSpin(sObj, pObj){
+  const suf = suffix || "";
+  lastPick = { sObj, pObj, suf };
+
+  const sImg = sObj.img ? `<img class="cimg" src="${escapeAttr(sObj.img)}" alt="">` : "";
+  const sEm  = sObj.img ? "" : emojiFor(sObj.name);
+  const pEm  = pObj.emoji || FALLBACK_EMOJI;
+
+  sentenceEl.innerHTML =
+    `<span class="chip s" data-role="s" data-word="${escapeAttr(sObj.name)}"><span class="ct">しゅご</span><span class="cw">${sImg}${sEm?sEm+" ":""}${escapeHtml(sObj.name)}${escapeHtml(suf)}</span></span>` +
+    `<span class="particle">${escapeHtml(particle)}</span>` +
+    `<span class="chip p" data-role="p" data-word="${escapeAttr(pObj.word)}"><span class="ct">じゅつご</span><span class="cw">${pEm} ${escapeHtml(pObj.word)}</span></span>` +
+    `<span class="bang">！</span>`;
+
+  const sceneSub = sObj.img
+    ? `<img class="sceneimg" src="${escapeAttr(sObj.img)}" alt="">`
+    : (emojiFor(sObj.name) || escapeHtml(sObj.name));
+
+  learnEl.hidden = false;
+  learnEl.innerHTML =
+    `<div class="scene">${sceneSub}<span style="opacity:.45"> ${escapeHtml(particle)} </span>${pEm}</div>` +
+    `<div class="qa"><span class="q">だれが？</span><span class="arrow">→</span><span class="a s">${escapeHtml(sObj.name)}${escapeHtml(suf)}</span></div>` +
+    `<div class="qa"><span class="q">どうする？</span><span class="arrow">→</span><span class="a p">${pEm} ${escapeHtml(pObj.word)}</span></div>` +
+    `<p class="rule">「<b class="s">しゅご</b>」＝ だれが・なにが。　「<b class="p">じゅつご</b>」＝ どうする・どんなだ。<br>「〜<b>${escapeHtml(particle)}</b>」の まえが しゅご、うしろが じゅつご だよ。</p>` +
+    `<div class="taphint" id="tapHint">もうすぐ クイズだよ！ よく みてね 👀</div>` +
+    `<button class="quizbtn teacher" id="quizBtn">🔒 クイズ</button>` +
+    `<div class="quizbox" id="quizBox" hidden>` +
+      `<div class="quizq" id="quizQ"></div>` +
+      `<div class="quizopts" id="quizOpts"></div>` +
+      `<div class="quizmsg" id="quizMsg"></div>` +
+    `</div>`;
+  makeLongPress(document.getElementById("quizBtn"), startQuiz);
+
+  quiz = null;
+  reactionEl.textContent = REACTIONS[Math.floor(Math.random()*REACTIONS.length)];
+
+  cheerSound();
+  burstConfetti(30);
+
+  stars++; save(LS.star, stars); renderStars();
+  if(stars % 5 === 0){
+    setTimeout(()=>{
+      reactionEl.textContent = "🎉 レベルアップ！ すごいね！ 🎉";
+      burstConfetti(90); cheerSound();
+    }, 700);
+  }
+
+  lastSentence = `${sObj.name}${suf}${particle}${pObj.word}`;
+  setTimeout(()=>speak(lastSentence), 250);
+
+  // スロットが とまって かみふぶきの あと、2びょうで じどうで クイズへ
+  clearTimeout(autoQuizTimer);
+  autoQuizTimer = setTimeout(()=>{ if(!spinning && !quiz) startQuiz(); }, 2000);
+}
+
+function renderStars(){ starsEl.textContent = "⭐ " + stars; }
+
+let toastTimer = null;
+function toast(msg, warn){
+  const t = document.getElementById("toast");
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.toggle("warn", !!warn);
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove("show"), warn ? 3200 : 1900);
+}
+
+/* ---------- クイズ（イラスト 2たく）＆ タップまなび ---------- */
+function optVisual(o){
+  return o.img
+    ? `<img class="qoptimg" src="${escapeAttr(o.img)}" alt="">`
+    : `<span class="qoptemj">${o.emoji || "👤"}</span>`;
+}
+function pickDistractor(excludeName){
+  const pool = subjects.filter(s => s.name !== excludeName);
+  if(pool.length){
+    const p = pool[Math.floor(Math.random()*pool.length)];
+    return { name:p.name, img:p.img||"", emoji: p.img?"":(emojiFor(p.name)||"👤") };
+  }
+  const alt = DISTRACT.filter(d => d.name !== excludeName);
+  const a = alt[Math.floor(Math.random()*alt.length)];
+  return { name:a.name, img:"", emoji:a.emoji };
+}
+
+function startQuiz(){
+  if(!lastPick) return;
+  const cur = lastPick.sObj;
+  const correct = { name:cur.name, img:cur.img||"", emoji: cur.img?"":(emojiFor(cur.name)||"👤"), ok:1 };
+  const wrong = Object.assign(pickDistractor(cur.name), { ok:0 });
+  const opts = shuffle([correct, wrong]);
+
+  quiz = { done:false, ans:cur.name };
+  const pw = pastish(lastPick.pObj.word);
+
+  const btn = document.getElementById("quizBtn");
+  const box = document.getElementById("quizBox");
+  if(btn) btn.hidden = true;
+  if(box) box.hidden = false;
+  document.getElementById("quizQ").textContent = `「${pw}」のは だれ？`;
+  document.getElementById("quizOpts").innerHTML =
+    opts.map(o=>`<button class="qopt2" data-ok="${o.ok}">${optVisual(o)}<span class="qoptname">${escapeHtml(o.name)}</span></button>`).join("");
+  document.getElementById("quizMsg").textContent = "イラストを タップ！";
+  if(box && box.scrollIntoView) box.scrollIntoView({ behavior:"smooth", block:"center" });
+  speak(`${pw}のは だれ？`);
+}
+
+learnEl.addEventListener("click", ev=>{
+  const opt = ev.target.closest(".qopt2");
+  if(opt && quiz && !quiz.done){
+    const mEl = document.getElementById("quizMsg");
+    if(opt.dataset.ok === "1"){
+      opt.classList.add("ok");
+      quiz.done = true;
+      beep(880,0.12,"triangle",0.06);
+      if(mEl) mEl.textContent = `せいかい！ 🎉　${quiz.ans} だね！`;
+      speak(`せいかい！ ${quiz.ans}。`);
+      burstConfetti(80); cheerSound();
+      stars++; save(LS.star, stars); renderStars();
+      const btn = document.getElementById("quizBtn");
+      if(btn){ btn.hidden = false; btn.textContent = "🔒 もういちど クイズ"; }
+      // せいかいしたら まわすボタンの がめんへ もどる
+      setTimeout(()=>{
+        const m = document.querySelector(".machine");
+        if(m && m.scrollIntoView) m.scrollIntoView({ behavior:"smooth", block:"start" });
+        spinBtn.classList.add("attract");
+        setTimeout(()=> spinBtn.classList.remove("attract"), 3400);
+      }, 1500);
+    }else{
+      opt.classList.add("ng");
+      setTimeout(()=>opt.classList.remove("ng"), 340);
+      beep(170,0.2,"sawtooth",0.05);
+      if(mEl) mEl.textContent = "ちがうよ〜　もういちど！";
+      speak("ちがうよ。もういちど。");
+    }
+  }
+});
+
+/* ---------- ながおし（せんせい用ボタン） ---------- */
+function makeLongPress(el, action){
+  if(!el || el._lp) return;
+  el._lp = true;
+  el.classList.add("lp");
+  const HOLD = 2000;
+  let timer = null, holding = false;
+  const stop = ()=>{ holding = false; el.classList.remove("lp-holding"); clearTimeout(timer); timer = null; };
+  el.addEventListener("pointerdown", ev=>{
+    ev.preventDefault();
+    holding = true;
+    el.classList.add("lp-holding");
+    timer = setTimeout(()=>{
+      stop();
+      el.classList.add("lp-done");
+      setTimeout(()=> el.classList.remove("lp-done"), 350);
+      try{ beep(820,0.09,"triangle",0.05); }catch(e){}
+      action();
+    }, HOLD);
+  });
+  const abort = ()=>{ if(holding){ stop(); toast("🔒 せんせい用：ながおし（2びょう）で うごきます", true); } };
+  el.addEventListener("pointerup", abort);
+  el.addEventListener("pointerleave", abort);
+  el.addEventListener("pointercancel", abort);
+  el.addEventListener("click", ev=>{ ev.preventDefault(); ev.stopPropagation(); });
+}
+
+/* ---------- read aloud ---------- */
+function readAloud(){ if(lastSentence) speak(lastSentence); }
+
+/* ---------- confetti ---------- */
+const cv = document.getElementById("confetti");
+const ctx = cv.getContext("2d");
+let parts = [], rafOn = false;
+function resizeCv(){ cv.width = innerWidth; cv.height = innerHeight; }
+resizeCv(); addEventListener("resize", resizeCv);
+function burstConfetti(n){
+  const cols = ["#ff5aa5","#2f8fff","#ffcf3f","#4bc46b","#8a7bff","#ff8a00"];
+  for(let i=0;i<n;i++){
+    parts.push({
+      x: innerWidth/2 + (Math.random()-0.5)*160, y: innerHeight*0.32,
+      vx:(Math.random()-0.5)*10, vy:-(Math.random()*10+4),
+      g:0.35+Math.random()*0.2, s:6+Math.random()*8,
+      c:cols[Math.floor(Math.random()*cols.length)],
+      rot:Math.random()*6.28, vr:(Math.random()-0.5)*0.4, life:90+Math.random()*40
+    });
+  }
+  if(!rafOn) loop();
+}
+function loop(){
+  rafOn = true;
+  ctx.clearRect(0,0,cv.width,cv.height);
+  parts.forEach(p=>{
+    p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr; p.life--;
+    ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+    ctx.fillStyle=p.c; ctx.fillRect(-p.s/2,-p.s/2,p.s,p.s*0.6); ctx.restore();
+  });
+  parts = parts.filter(p=>p.life>0 && p.y<cv.height+40);
+  if(parts.length) requestAnimationFrame(loop);
+  else { ctx.clearRect(0,0,cv.width,cv.height); rafOn=false; }
+}
+
+/* ---------- image handling ---------- */
+function handleFile(file, cb){
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const S = 240;
+      const c = document.createElement("canvas"); c.width=S; c.height=S;
+      const g = c.getContext("2d");
+      const scale = Math.max(S/img.width, S/img.height);
+      const w = img.width*scale, h = img.height*scale;
+      g.drawImage(img, (S-w)/2, (S-h)/2, w, h);
+      try{ cb(c.toDataURL("image/jpeg", 0.82)); }
+      catch(e){ alert("この しゃしんは つかえませんでした。"); }
+    };
+    img.onerror = ()=> alert("しゃしんを よみこめませんでした。");
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ---------- settings modal ---------- */
+const overlay = document.getElementById("overlay");
+const subjSlots = document.getElementById("subjSlots");
+const predSlots = document.getElementById("predSlots");
+let editSubjects = [];
+let editPreds = [];
+
+function renderSubjSlots(){
+  subjSlots.innerHTML = "";
+  for(let i=0;i<MAX_S;i++){
+    const e = editSubjects[i] || {name:"",img:""};
+    const row = document.createElement("div");
+    row.className = "slot";
+    row.innerHTML =
+      `<div class="thumb" style="${e.img?`background-image:url(${e.img})`:''}">${e.img?'':'👤'}</div>
+       <input class="sname" type="text" maxlength="10" placeholder="${i+1}つめ（れい：ねこ）" value="${escapeAttr(e.name)}">
+       <button class="pick" type="button">📷しゃしん</button>
+       <button class="clrimg" type="button" ${e.img?'':'disabled'}>けす</button>
+       <input class="file" type="file" accept="image/*" hidden>`;
+    const nameI = row.querySelector(".sname");
+    const fileI = row.querySelector(".file");
+    nameI.addEventListener("input", ()=>{ editSubjects[i] = { name:nameI.value, img:(editSubjects[i]||{}).img||"" }; });
+    row.querySelector(".pick").addEventListener("click", ()=> fileI.click());
+    fileI.addEventListener("change", ()=>{
+      const file = fileI.files && fileI.files[0];
+      if(!file) return;
+      handleFile(file, durl=>{ editSubjects[i] = { name:nameI.value, img:durl }; renderSubjSlots(); });
+    });
+    row.querySelector(".clrimg").addEventListener("click", ()=>{ editSubjects[i] = { name:nameI.value, img:"" }; renderSubjSlots(); });
+    subjSlots.appendChild(row);
+  }
+}
+
+function renderPredSlots(){
+  predSlots.innerHTML = "";
+  editPreds.forEach((e,i)=>{
+    const row = document.createElement("div");
+    row.className = "pslotrow";
+    row.innerHTML =
+      `<input class="pemoji" type="text" maxlength="4" value="${escapeAttr(e.emoji||"")}">
+       <input class="pword" type="text" maxlength="12" placeholder="れい：ジャンプする" value="${escapeAttr(e.word||"")}">
+       <button class="delp" type="button" title="けす">✕</button>`;
+    const emI = row.querySelector(".pemoji");
+    const wdI = row.querySelector(".pword");
+    emI.addEventListener("focus", ()=> emI.select());
+    emI.addEventListener("input", ()=>{ e.emoji = emI.value; e._touched = true; });
+    wdI.addEventListener("input", ()=>{
+      e.word = wdI.value;
+      if(!e._touched){
+        const g = emojiFor(wdI.value.trim()) || FALLBACK_EMOJI;
+        e.emoji = g; emI.value = g;
+      }
+    });
+    row.querySelector(".delp").addEventListener("click", ()=>{
+      if(editPreds.length<=1){ alert("じゅつごは 1つ いじょう ひつようだよ。"); return; }
+      editPreds.splice(i,1); renderPredSlots();
+    });
+    predSlots.appendChild(row);
+  });
+  document.getElementById("predAdd").disabled = editPreds.length >= MAX_P;
+}
+
+document.getElementById("predAdd").addEventListener("click", ()=>{
+  if(editPreds.length >= MAX_P) return;
+  editPreds.push({ word:"", emoji:FALLBACK_EMOJI });
+  renderPredSlots();
+  const rows = predSlots.querySelectorAll(".pslotrow");
+  const last = rows[rows.length-1];
+  if(last) last.querySelector(".pword").focus();
+});
+
+function openSettings(){
+  editSubjects = [];
+  for(let i=0;i<MAX_S;i++) editSubjects[i] = subjects[i] ? {name:subjects[i].name, img:subjects[i].img} : {name:"",img:""};
+  renderSubjSlots();
+  editPreds = predicates.map(e=>({ word:e.word, emoji:e.emoji }));
+  renderPredSlots();
+  document.querySelectorAll('input[name=suffix]').forEach(r=> r.checked = (r.value===suffix));
+  document.querySelectorAll('input[name=particle]').forEach(r=> r.checked = (r.value===particle));
+  refreshVoices();
+  const rateSel = document.getElementById("rateSel");
+  if(rateSel) rateSel.value = String(speakRate);
+  overlay.classList.add("open");
+}
+function closeSettings(){ overlay.classList.remove("open"); }
+
+document.getElementById("mCancel").addEventListener("click", closeSettings);
+overlay.addEventListener("click", e=>{ if(e.target===overlay) closeSettings(); });
+
+/* ---------- QRコード（きょうゆう） ---------- */
+const qrOverlay = document.getElementById("qrOverlay");
+function appUrl(){ return location.href.split("#")[0].split("?")[0]; }
+function openQR(){
+  const box = document.getElementById("qrBox");
+  const urlEl = document.getElementById("qrUrl");
+  const noteEl = document.getElementById("qrNote");
+  const url = appUrl();
+  box.innerHTML = "";
+  urlEl.textContent = url;
+  noteEl.textContent = "";
+  if(location.protocol === "file:"){
+    box.textContent = "⚠️ いまは PC の ファイルを ひらいています。GitHub Pages などに あげると、ここに QRコードが でます。";
+  }else if(typeof QRCode === "undefined"){
+    box.textContent = "QRコードの ぶひんを よみこめませんでした。ネットに つないで ひらきなおしてね。";
+  }else{
+    new QRCode(box, { text:url, width:240, height:240, correctLevel:QRCode.CorrectLevel.M });
+    noteEl.textContent = "ロイロノート → カメラ → QRコード で よみとり。または Webカードに このリンクを はりつけてね。";
+  }
+  qrOverlay.classList.add("open");
+}
+document.getElementById("qrOpen").addEventListener("click", openQR);
+document.getElementById("qrClose").addEventListener("click", ()=> qrOverlay.classList.remove("open"));
+qrOverlay.addEventListener("click", e=>{ if(e.target===qrOverlay) qrOverlay.classList.remove("open"); });
+document.getElementById("qrCopy").addEventListener("click", async ()=>{
+  try{ await navigator.clipboard.writeText(appUrl()); toast("リンクを コピーしたよ 🔗"); }
+  catch(e){ toast("コピーできませんでした。リンクを てで えらんでね", true); }
+});
+document.getElementById("qrSave").addEventListener("click", ()=>{
+  const cv = document.querySelector("#qrBox canvas");
+  const img = document.querySelector("#qrBox img");
+  const data = cv ? cv.toDataURL("image/png") : (img && img.src) || "";
+  if(!data){ toast("QRコードが まだ ないよ", true); return; }
+  const a = document.createElement("a");
+  a.href = data; a.download = "shugo-jutsugo-slot-qr.png";
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+document.getElementById("mSave").addEventListener("click", ()=>{
+  const ns = editSubjects
+    .map(e=>({ name:(e.name||"").trim(), img:e.img||"" }))
+    .filter(e=>e.name.length>0)
+    .slice(0,MAX_S);
+  const np = editPreds
+    .map(e=>{
+      const word = (e.word||"").trim();
+      const emoji = (e.emoji||"").trim() || emojiFor(word) || FALLBACK_EMOJI;
+      return { word, emoji };
+    })
+    .filter(e=>e.word.length>0)
+    .slice(0,MAX_P);
+  if(ns.length===0 || np.length===0){
+    alert("しゅごと じゅつごを それぞれ 1つ いじょう いれてね。"); return;
+  }
+  subjects = ns; predicates = np;
+  suffix = (document.querySelector('input[name=suffix]:checked')||{value:""}).value;
+  particle = (document.querySelector('input[name=particle]:checked')||{value:"が"}).value;
+
+  const okS = save(LS.s, subjects);
+  const okP = save(LS.p, predicates);
+  const okF = save(LS.suf, suffix) && save(LS.par, particle);
+
+  buildReels();
+  closeSettings();
+
+  if(okS && okP && okF){
+    // ほんとうに かきこめたか よみなおして かくにん
+    const chk = load(LS.s, null);
+    if(Array.isArray(chk) && chk.length === subjects.length){
+      toast("ほぞんしました！ つぎ ひらいても このままだよ ⭐");
+    }else{
+      toast("ほぞんは できたけど かくにんできませんでした", true);
+    }
+  }else{
+    toast("ほぞんできませんでした。しゃしんを へらすか、ブラウザの せっていを かくにんしてね", true);
+  }
+});
+
+document.getElementById("mReset").addEventListener("click", ()=>{
+  if(!confirm("さいしょの ことばに もどしますか？（しゃしんも きえます）")) return;
+  editSubjects = DEFAULT_S.map(n=>({name:n,img:""}));
+  while(editSubjects.length<MAX_S) editSubjects.push({name:"",img:""});
+  renderSubjSlots();
+  editPreds = DEFAULT_P.map(e=>({...e}));
+  renderPredSlots();
+  suffix = "くん"; particle = "が";
+  document.querySelectorAll('input[name=suffix]').forEach(r=> r.checked = (r.value===suffix));
+  document.querySelectorAll('input[name=particle]').forEach(r=> r.checked = (r.value===particle));
+  toast("もどしました。「💾 ほぞんする」を おすと けっていだよ", true);
+});
+
+/* ---------- wire up ---------- */
+/* こどもが つかえるのは「まわす」ボタン と レバー、クイズの 2たく だけ */
+spinBtn.addEventListener("click", spin);
+leverEl.addEventListener("click", spin);
+/* せんせい用（ながおしでのみ うごく） */
+makeLongPress(document.getElementById("again"), spin);
+makeLongPress(document.getElementById("read"), readAloud);
+makeLongPress(document.getElementById("openSet"), openSettings);
+
+/* こえ の せんたく */
+document.getElementById("voiceSel").addEventListener("change", e=>{
+  voicePref = e.target.value || "";
+  save(LS.voice, voicePref);
+  refreshVoices();
+  speak("こんにちは。ねこが はしる。");
+  toast("こえを かえたよ 🔊");
+});
+document.getElementById("voiceTest").addEventListener("click", ()=> speak("ねこが はしって、いぬが とぶ。"));
+document.getElementById("rateSel").addEventListener("change", e=>{
+  speakRate = parseFloat(e.target.value) || 1;
+  save(LS.rate, speakRate);
+  speak("この はやさで よみます。");
+  toast("はやさを かえたよ");
+});
+
+refreshVoices();
+// iOS/Chrome は さいしょの ユーザー そうさで こえを ウォームアップ
+window.addEventListener("pointerdown", function warm(){ try{ speak(" "); }catch(e){} window.removeEventListener("pointerdown", warm); }, { once:true });
+
+buildReels();
+renderStars();
+</script>
+</body>
+</html>
