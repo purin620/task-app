@@ -207,7 +207,7 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
 .tally .chip { font-size: 13px; }
 .tally .chip b { font-family: var(--f-num); color: var(--ink); }
 
-/* タスク */
+/* やること */
 .task-form { display: grid; gap: 10px; }
 .task-form .opts { display: grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap: 8px; align-items: end; }
 .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0 10px; }
@@ -265,7 +265,7 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
       <button class="tab" role="tab" data-view="day" id="tab-day">1日</button>
       <button class="tab" role="tab" data-view="month" id="tab-month">月</button>
       <button class="tab" role="tab" data-view="week" id="tab-week">時間割</button>
-      <button class="tab" role="tab" data-view="tasks" id="tab-tasks">タスク</button>
+      <button class="tab" role="tab" data-view="tasks" id="tab-tasks">やること</button>
       <button class="tab" role="tab" data-view="settings" id="tab-settings">設定</button>
     </nav>
   </div>
@@ -740,21 +740,21 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     ttCard.appendChild(ul);
     left.appendChild(ttCard);
 
-    // タスク
+    // やること
     var due = tasksArr().filter(function (t) { return !t.done && t.due && t.due <= date; })
       .sort(function (a, b) { return a.due.localeCompare(b.due) || priN(a) - priN(b); });
     var undated = tasksArr().filter(function (t) { return !t.done && !t.due; }).length;
     var tCard = h('div', { class: 'card' },
-      h('div', { class: 'card-head' }, h('h2', null, 'この日までのタスク'), h('div', { class: 'spacer' }),
+      h('div', { class: 'card-head' }, h('h2', null, 'この日までのやること'), h('div', { class: 'spacer' }),
         h('button', { class: 'btn small', onclick: function () { go('tasks'); } }, 'すべて見る')));
-    if (!due.length) tCard.appendChild(h('div', { class: 'empty' }, '期限が来ているタスクはありません' + (undated ? '（期限なし ' + undated + '件）' : '')));
+    if (!due.length) tCard.appendChild(h('div', { class: 'empty' }, '期限が来ているやることはありません' + (undated ? '（期限なし ' + undated + '件）' : '')));
     else tCard.appendChild(h('ul', { class: 'task-list' }, due.map(taskItem)));
-    var qi = h('input', { type: 'text', id: 'quickTask', maxlength: '120', placeholder: 'タスクを追加（期限 ' + fmtShort(date) + '）' });
+    var qi = h('input', { type: 'text', id: 'quickTask', maxlength: '120', placeholder: 'やることを追加（期限 ' + fmtShort(date) + '）' });
     var addQuick = function () {
       var v = qi.value.trim(); if (!v) return;
       var id = uid();
       S.tasks[id] = { id: id, title: v, due: date, pri: 'mid', cat: '', note: '', done: false, created: Date.now() };
-      persist('tk:' + id); qi.value = ''; qi.blur(); renderAll(); toast('タスクを追加しました');
+      persist('tk:' + id); qi.value = ''; qi.blur(); renderAll(); toast('やることを追加しました');
     };
     qi.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); addQuick(); } });
     tCard.appendChild(h('div', { class: 'quick' }, qi, h('button', { class: 'btn primary', onclick: addQuick }, '追加')));
@@ -966,7 +966,7 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     close = openSheet(title, body);
   }
 
-  // ================= タスク =================
+  // ================= やること =================
   function priN(t) { return { high: 0, mid: 1, low: 2 }[t.pri] != null ? { high: 0, mid: 1, low: 2 }[t.pri] : 1; }
   function dueChip(t) {
     if (!t.due) return null;
@@ -992,12 +992,12 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
 
   function renderTasks(root) {
     root.innerHTML = '';
-    var title = h('input', { type: 'text', id: 'newTask', maxlength: '120', placeholder: '新しいタスク（例：個別の指導計画の評価を書く）', required: true });
+    var title = h('input', { type: 'text', id: 'newTask', maxlength: '120', placeholder: '新しいやること（例：個別の指導計画の評価を書く）', required: true });
     var due = h('input', { type: 'date', id: 'newTaskDue' });
     var pri = h('select', { id: 'newTaskPri' }, h('option', { value: 'high' }, '優先：高'), h('option', { value: 'mid', selected: true }, '優先：中'), h('option', { value: 'low' }, '優先：低'));
     var cat = h('select', { id: 'newTaskCat' }, h('option', { value: '' }, '種類なし'), S.settings.taskCats.map(function (c) { return h('option', { value: c }, c); }));
     var form = h('form', { class: 'card task-form' },
-      h('div', { class: 'card-head', style: 'margin:0' }, h('h2', null, 'タスクを追加')),
+      h('div', { class: 'card-head', style: 'margin:0' }, h('h2', null, 'やることを追加')),
       title,
       h('div', { class: 'opts' },
         h('label', { class: 'f' }, h('span', null, '期限'), due),
@@ -1011,7 +1011,7 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
       S.tasks[id] = { id: id, title: v, due: due.value || '', pri: pri.value, cat: cat.value, note: '', done: false, created: Date.now() };
       persist('tk:' + id);
       title.value = ''; due.value = ''; title.blur();
-      renderAll(); toast('タスクを追加しました');
+      renderAll(); toast('やることを追加しました');
     });
     root.appendChild(form);
 
@@ -1053,12 +1053,12 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     });
     if (UI.taskFilter !== 'open') {
       var doneN = tasksArr().filter(function (t) { return t.done; }).length;
-      if (doneN) box.appendChild(h('div', { style: 'margin-top:14px' }, confirmBtn('完了したタスクをまとめて消す（' + doneN + '件）', 'もう一度押すと消します', function () {
+      if (doneN) box.appendChild(h('div', { style: 'margin-top:14px' }, confirmBtn('完了したやることをまとめて消す（' + doneN + '件）', 'もう一度押すと消します', function () {
         tasksArr().filter(function (t) { return t.done; }).forEach(function (t) { delete S.tasks[t.id]; persist('tk:' + t.id); });
-        renderAll(); toast('完了したタスクを消しました');
+        renderAll(); toast('完了したやることを消しました');
       })));
     }
-    if (!shown) box.appendChild(h('div', { class: 'empty' }, UI.taskFilter === 'done' ? '完了したタスクはまだありません' : 'タスクはありません。上の欄から追加できます。'));
+    if (!shown) box.appendChild(h('div', { class: 'empty' }, UI.taskFilter === 'done' ? '完了したやることはまだありません' : 'やることはありません。上の欄から追加できます。'));
     root.appendChild(box);
   }
 
@@ -1070,8 +1070,8 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     var cat = h('select', { id: 'etCat' }, h('option', { value: '' }, 'なし'), cats.map(function (c) { return h('option', { value: c, selected: t.cat === c }, c); }));
     var note = h('textarea', { id: 'etNote', rows: '3', maxlength: '1000', value: t.note || '', placeholder: '手順やリンクなど' });
     var done = h('input', { type: 'checkbox', id: 'etDone', checked: !!t.done });
-    var close = openSheet('タスクを編集', [
-      h('label', { class: 'f' }, h('span', null, 'タスク'), title),
+    var close = openSheet('やることを編集', [
+      h('label', { class: 'f' }, h('span', null, 'やること'), title),
       h('div', { class: 'row2' }, h('label', { class: 'f' }, h('span', null, '期限'), due), h('label', { class: 'f' }, h('span', null, '優先度'), pri)),
       h('label', { class: 'f' }, h('span', null, '種類'), cat),
       h('label', { class: 'f' }, h('span', null, 'メモ'), note),
@@ -1211,10 +1211,10 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
       h('div', { class: 'sub' }, '「行事」にチェックした種類は、カレンダーで目立つ色の帯になり、月の行事一覧にも並びます。'), catsBox,
       h('div', null, h('button', { class: 'btn small', onclick: function () { st.cats.push({ id: 'c' + uid(), name: '新しい種類', color: '#4f8a8b', gyoji: false }); persist('settings'); renderAll(); } }, '＋ 種類を追加'))));
 
-    // タスクの種類
+    // やることの種類
     var tc = h('textarea', { id: 'setTaskCats', rows: '4', value: st.taskCats.join('\n') });
     tc.addEventListener('input', function () { st.taskCats = lines(tc.value); persist('settings', 800); });
-    colB.appendChild(h('div', { class: 'card' }, h('h2', null, 'タスクの種類'), h('div', { class: 'sub' }, '1行に1つ書きます。'), tc));
+    colB.appendChild(h('div', { class: 'card' }, h('h2', null, 'やることの種類'), h('div', { class: 'sub' }, '1行に1つ書きます。'), tc));
 
     // 表示
     var cur = document.documentElement.getAttribute('data-theme') || 'system';
@@ -1232,7 +1232,7 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     file.addEventListener('change', function () { if (file.files && file.files[0]) importFile(file.files[0]); file.value = ''; });
     var nEv = Object.keys(S.events).length, nTk = Object.keys(S.tasks).length;
     colB.appendChild(h('div', { class: 'card' }, h('h2', null, 'データ（バックアップ・引っこし）'),
-      h('div', { class: 'sub' }, '予定 ' + nEv + '件・タスク ' + nTk + '件・日のメモ/時間割変更 ' + Object.keys(S.days).length + '日分'),
+      h('div', { class: 'sub' }, '予定 ' + nEv + '件・やること ' + nTk + '件・日のメモ/時間割変更 ' + Object.keys(S.days).length + '日分'),
       h('div', { class: 'note' }, mode === 'db'
         ? 'いまは claude.ai のクラウドに保存しています。同じアカウントでひらけば、iPhone・iPad・パソコンのどれでも同じ内容が見られます。'
         : 'いまはこの端末のブラウザの中に保存しています。ほかの端末とは共有されません。ときどき「書き出す」でバックアップしてください。'),

@@ -1,7 +1,7 @@
 {
   "name": "Cadence 教員手帳",
   "short_name": "Cadence",
-  "description": "タスク・時間割・行事予定をまとめて書ける教員用の手帳アプリ",
+  "description": "やること・時間割・行事予定をまとめて書ける教員用の手帳アプリ",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
