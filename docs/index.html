@@ -157,6 +157,20 @@ label.f > span { font-weight: 500; }
 .task.pri-low { border-left: 4px solid var(--line); }
 .quick { display: flex; gap: 8px; margin-top: 10px; }
 .quick input { flex: 1; }
+.att { display: grid; gap: 8px; }
+.att-row { display: grid; grid-template-columns: 70px 1fr; gap: 6px 8px; align-items: center; }
+.att-row .seg { justify-self: start; flex-wrap: wrap; }
+.att-row input { grid-column: 2; }
+.att-row b { font-size: 14px; overflow-wrap: anywhere; }
+.att-seg button { padding: 5px 9px; }
+.att-seg button.st-ab[aria-pressed="true"] { background: var(--gyoji); color: #fff; }
+.att-seg button.st-lt[aria-pressed="true"] { background: var(--warn); color: #fff; }
+.att-mark { color: var(--gyoji); font-weight: 700; }
+table.att-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.att-table th, table.att-table td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: center; white-space: nowrap; }
+table.att-table th:first-child { text-align: left; }
+table.att-table td.has { color: var(--gyoji); font-weight: 700; }
+table.att-table .wide { text-align: left; white-space: pre-line; font-size: 12px; color: var(--muted); min-width: 160px; }
 .kids { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .kids label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; }
 .upcoming { display: grid; gap: 10px; }
@@ -255,6 +269,8 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
   .day-grid, .set-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
+  .att-row { grid-template-columns: 1fr; gap: 4px; }
+  .att-row input { grid-column: 1; }
   .brand span { display: none; }
   .cell { min-height: 78px; padding: 3px; border-radius: 8px; }
   .cell.today { padding: 2px; }
@@ -320,6 +336,8 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     { id: 'sc', name: '出張・研修', color: '#8a6d3b' },
     { id: 'ot', name: 'その他', color: '#6b7280' }
   ];
+  var ATT = [['', 'ok'], ['欠席', 'ab'], ['遅刻', 'lt'], ['早退', 'lt'], ['出席停止', 'ab']];
+  var ATT_REASONS = ['体調不良', '発熱', '通院', '入院', '感染症（出席停止）', '家庭の都合', '療育・リハビリ', '天候', '忌引'];
   var DEF_TASK_CATS = ['学級', '医療的ケア', '体育', '分掌', '書類', 'その他'];
 
   function defaultSettings() {
@@ -490,7 +508,7 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     if (kind === 'ev') return S.events[id] || null;
     if (kind === 'tk') return S.tasks[id] || null;
     var d = S.days[id];
-    if (!d || (!d.tt && !d.memo && !(d.kids || []).some(Boolean))) return null;
+    if (!d || (!d.tt && !d.memo && !(d.kids || []).some(Boolean) && !(d.att || []).some(function (a) { return a && a.s; }))) return null;
     return d;
   }
 
@@ -802,6 +820,27 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     memo.addEventListener('input', function () { ensureDay(date).memo = memo.value; persist('day:' + date, 700); });
     right.appendChild(h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h2', null, 'メモ')), memo));
 
+    // 出欠
+    if (S.settings.kids.length) {
+      var attBox = h('div', { class: 'att' });
+      S.settings.kids.forEach(function (name, i) {
+        var a = (dayOf(date).att || [])[i] || { s: '', r: '' };
+        var reason = h('input', { type: 'text', id: 'attR' + i, list: 'attReasons', maxlength: '60', value: a.r || '', placeholder: '理由（例：体調不良、通院 10:30）', hidden: !a.s });
+        function save(st, r) {
+          var d = ensureDay(date); d.att = (d.att || []).slice(); while (d.att.length < S.settings.kids.length) d.att.push(null);
+          d.att[i] = st ? { s: st, r: r || '' } : null; persist('day:' + date, st === undefined ? 700 : 0);
+        }
+        var seg = h('div', { class: 'seg att-seg', role: 'group', 'aria-label': name + 'の出欠' }, ATT.map(function (st) {
+          return h('button', { 'aria-pressed': String((a.s || '') === st[0]), class: st[0] ? 'st-' + st[1] : '', onclick: function () { save(st[0], st[0] ? reason.value : ''); renderAll(); } }, st[0] || '出席');
+        }));
+        reason.addEventListener('input', function () { var d = ensureDay(date); var cur = (d.att || [])[i]; if (cur && cur.s) { cur.r = reason.value; d.att = d.att.slice(); persist('day:' + date, 700); } });
+        attBox.appendChild(h('div', { class: 'att-row' }, h('b', null, name || ('児童' + (i + 1))), seg, reason));
+      });
+      attBox.appendChild(h('datalist', { id: 'attReasons' }, ATT_REASONS.map(function (r) { return h('option', { value: r }); })));
+      right.appendChild(h('div', { class: 'card' }, h('div', { class: 'card-head' }, h('h2', null, '出欠'),
+        h('span', { class: 'sub' }, '何も押さなければ出席です')), attBox));
+    }
+
     // 児童ごと
     if (S.settings.kids.length) {
       var kidsBox = h('div', { class: 'kids' });
@@ -874,6 +913,27 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     }
     root.appendChild(grid);
 
+    // 出欠のまとめ
+    if (S.settings.kids.length) {
+      var tally = S.settings.kids.map(function () { return { 欠席: 0, 遅刻: 0, 早退: 0, 出席停止: 0, list: [] }; });
+      Object.keys(S.days).filter(function (k) { return k >= first && k <= last; }).sort().forEach(function (k) {
+        (S.days[k].att || []).forEach(function (a, i) {
+          if (!a || !a.s || !tally[i]) return;
+          tally[i][a.s] = (tally[i][a.s] || 0) + 1;
+          tally[i].list.push(fmtShort(k) + ' ' + a.s + (a.r ? '（' + a.r + '）' : ''));
+        });
+      });
+      var tb = h('table', { class: 'att-table' }, h('thead', null, h('tr', null, h('th', null, ''), ATT.slice(1).map(function (x) { return h('th', null, x[0]); }), h('th', { class: 'wide' }, 'くわしく'))),
+        h('tbody', null, S.settings.kids.map(function (name, i) {
+          var t = tally[i];
+          return h('tr', null, h('th', null, name || '児童' + (i + 1)),
+            ATT.slice(1).map(function (x) { return h('td', { class: 'num' + (t[x[0]] ? ' has' : '') }, String(t[x[0]] || 0)); }),
+            h('td', { class: 'wide' }, t.list.length ? t.list.join('\n') : '—'));
+        })));
+      root.appendChild(h('div', { class: 'card month-list' }, h('div', { class: 'card-head' }, h('h2', null, (m + 1) + '月の出欠'), h('span', { class: 'sub' }, '1日の画面で入力した分を数えています')),
+        h('div', { class: 'tt-scroll' }, tb)));
+    }
+
     // 今月の行事
     var monthEv = Object.keys(S.events).map(function (k) { return S.events[k]; }).filter(function (e) {
       var end = e.end && e.end > e.date ? e.end : e.date; return e.date <= last && end >= first;
@@ -902,6 +962,10 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
     items.slice(0, max).forEach(function (x) { cell.appendChild(x); });
     if (items.length > max) cell.appendChild(h('div', { class: 'b more' }, '+' + (items.length - max) + '件'));
     var d = S.days[date];
+    if (d && (d.att || []).some(function (a) { return a && a.s; })) {
+      var cnt = {}; d.att.forEach(function (a) { if (a && a.s) cnt[a.s] = (cnt[a.s] || 0) + 1; });
+      cell.appendChild(h('div', { class: 'memo-mark att-mark' }, '🏠 ' + Object.keys(cnt).map(function (k) { return k + cnt[k]; }).join('・')));
+    }
     if (d && d.memo) cell.appendChild(h('div', { class: 'memo-mark' }, '📝 ' + d.memo.split('\n')[0]));
     if (S.settings.calTT && !hol && w !== 0 && w !== 6) {
       var tt = ttFor(date), rows = [];
