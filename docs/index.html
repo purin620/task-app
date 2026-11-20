@@ -1351,7 +1351,8 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
         : 'いまはこの端末のブラウザの中に保存しています。ほかの端末とは共有されません。ときどき「書き出す」でバックアップしてください。'),
       h('div', { class: 'acts' },
         h('button', { class: 'btn', onclick: exportData }, 'ファイルに書き出す'),
-        h('button', { class: 'btn', onclick: function () { file.click(); } }, 'ファイルから読み込む'), file),
+        h('button', { class: 'btn', onclick: function () { file.click(); } }, 'ファイルから読み込む'),
+        h('button', { class: 'btn', onclick: openPasteSheet }, '貼り付けて読み込む'), file),
       h('div', { class: 'sub' }, '前の版（Cadence）で書き出したファイルも読み込めます。読み込むと、同じ予定は上書きし、ない予定は追加します。')));
   }
   function lines(s) { return s.split('\n').map(function (x) { return x.trim(); }).filter(Boolean); }
@@ -1375,9 +1376,31 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
   }
   function importFile(f) {
     var r = new FileReader();
-    r.onload = function () {
+    r.onload = function () { importText(String(r.result)); };
+    r.readAsText(f);
+  }
+  function openPasteSheet() {
+    var ta = h('textarea', { id: 'pasteData', rows: '10', placeholder: 'ここに貼り付けます（{ で始まる文字）', style: 'font-family:var(--f-num);font-size:13px' });
+    var msg = h('div', { class: 'sub', 'aria-live': 'polite' });
+    var close = openSheet('貼り付けて読み込む', [
+      h('div', { class: 'sub' }, '取りこみ用のデータや、書き出したデータの中身をコピーして、下に貼り付けてください。今ある内容は消さずに足します（書き出したデータ全体のときは設定も入れかわります）。'),
+      ta, msg,
+      h('div', { class: 'acts' }, h('div', { class: 'spacer' }), h('button', { class: 'btn', onclick: function () { close(); } }, 'やめる'),
+        h('button', { class: 'btn primary', onclick: function () {
+          var t = ta.value.trim();
+          if (!t) { msg.textContent = 'まだ何も貼り付けられていません。'; return; }
+          var i = t.indexOf('{'), j = t.lastIndexOf('}');
+          if (i < 0 || j < i) { msg.textContent = 'データの形が正しくありません。{ から } まで全部コピーできているか確かめてください。'; return; }
+          try { JSON.parse(t.slice(i, j + 1)); } catch (e) { msg.textContent = 'データが途中で切れているようです。最後の } まで全部コピーしてください。'; return; }
+          close(); importText(t.slice(i, j + 1));
+        } }, '読み込む'))
+    ]);
+    setTimeout(function () { ta.focus(); }, 60);
+  }
+  function importText(text) {
+    (function () {
       var o;
-      try { o = JSON.parse(r.result); } catch (e) { toast('ファイルを読めませんでした（JSONではありません）'); return; }
+      try { o = JSON.parse(text); } catch (e) { toast('読めませんでした（データの形が正しくありません）'); return; }
       var inc;
       if (o && o.app === 'cadence' && o.partial) { mergePartial(o); return; }
       if (o && o.app === 'cadence' && o.version === 2) {
@@ -1393,8 +1416,7 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
       Object.keys(inc.tasks).forEach(function (k) { S.tasks[k] = inc.tasks[k]; keys.push('tk:' + k); });
       Object.keys(inc.days).forEach(function (k) { S.days[k] = inc.days[k]; keys.push('day:' + k); });
       sendKeys(keys);
-    };
-    r.readAsText(f);
+    })();
   }
 
   // 取りこみ用ファイル（今ある内容は消さずに足す）
