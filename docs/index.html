@@ -1379,6 +1379,7 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
       var o;
       try { o = JSON.parse(r.result); } catch (e) { toast('ファイルを読めませんでした（JSONではありません）'); return; }
       var inc;
+      if (o && o.app === 'cadence' && o.partial) { mergePartial(o); return; }
       if (o && o.app === 'cadence' && o.version === 2) {
         inc = { settings: normSettings(o.settings), events: {}, tasks: {}, days: o.days || {} };
         (o.events || []).forEach(function (e) { if (e && e.id) inc.events[e.id] = e; });
@@ -1391,20 +1392,65 @@ table.week tr.lunch td { text-align: center; font-size: 12px; color: var(--muted
       Object.keys(inc.events).forEach(function (k) { S.events[k] = inc.events[k]; keys.push('ev:' + k); });
       Object.keys(inc.tasks).forEach(function (k) { S.tasks[k] = inc.tasks[k]; keys.push('tk:' + k); });
       Object.keys(inc.days).forEach(function (k) { S.days[k] = inc.days[k]; keys.push('day:' + k); });
+      sendKeys(keys);
+    };
+    r.readAsText(f);
+  }
+
+  // 取りこみ用ファイル（今ある内容は消さずに足す）
+  function mergePartial(o) {
+    var keys = [], nEv = 0, nDay = 0, nAtt = 0;
+    var defKids = ['Aさん', 'Bさん', 'Cさん'];
+    var names = []; (o.att || []).forEach(function (a) { if (a && a.kid && names.indexOf(a.kid) < 0) names.push(a.kid); });
+    if (names.length) {
+      var isDef = S.settings.kids.join('|') === defKids.join('|');
+      if (isDef) S.settings.kids = names.slice();
+      else names.forEach(function (n) { if (S.settings.kids.indexOf(n) < 0) S.settings.kids.push(n); });
+      keys.push('settings');
+    }
+    (o.events || []).forEach(function (e) {
+      if (!e || !okDate(e.date) || !e.title) return;
+      var dup = Object.keys(S.events).some(function (k) { return S.events[k].date === e.date && S.events[k].title === e.title; });
+      if (dup) return;
+      var id = uid(); S.events[id] = Object.assign({}, e, { id: id }); keys.push('ev:' + id); nEv++;
+    });
+    var touched = {};
+    Object.keys(o.days || {}).forEach(function (date) {
+      var src = o.days[date]; if (!okDate(date) || !src) return;
+      var d = ensureDay(date);
+      if (Array.isArray(src.tt) && !d.tt) {
+        var tpl = tplFor(date);
+        var arr = padArr(src.tt.map(function (v, i) { return v == null || v === '' ? tpl[i] : v; }), S.settings.periods);
+        d.tt = arr.join('\u0001') === tpl.join('\u0001') ? null : arr; nDay++;
+      }
+      if (src.memo) d.memo = (d.memo ? d.memo.replace(/\s+$/, '') + '\n' : '') + src.memo;
+      touched[date] = 1;
+    });
+    (o.att || []).forEach(function (a) {
+      if (!a || !okDate(a.date)) return;
+      var idx = S.settings.kids.indexOf(a.kid); if (idx < 0) return;
+      var d = ensureDay(a.date); d.att = (d.att || []).slice(); while (d.att.length < S.settings.kids.length) d.att.push(null);
+      if (d.att[idx] && d.att[idx].s) return;
+      d.att[idx] = a.plan ? { s: a.s, r: a.r || '', plan: true } : { s: a.s, r: a.r || '' }; touched[a.date] = 1; nAtt++;
+    });
+    Object.keys(touched).forEach(function (k) { keys.push('day:' + k); });
+    sendKeys(keys, '予定 ' + nEv + '件・時間割 ' + nDay + '日・出欠 ' + nAtt + '件を入れました');
+  }
+
+  function sendKeys(keys, doneMsg) {
+      doneMsg = doneMsg || '読み込みました（' + keys.length + '件）';
       renderAll();
-      if (mode !== 'db') { saveLocalNow(); toast('読み込みました（' + keys.length + '件）'); return; }
+      if (mode !== 'db') { saveLocalNow(); toast(doneMsg); return; }
       // クラウドへは少しずつ送る
       var i = 0;
       setSync('wait', '読み込み中 0/' + keys.length);
       (function next() {
-        if (i >= keys.length) { setSync('ok', 'クラウドに保存'); toast('読み込みました（' + keys.length + '件）'); return; }
+        if (i >= keys.length) { setSync('ok', '共有中・自動保存'); toast(doneMsg); return; }
         var k = keys[i++], v = valueFor(k), ref = refFor(k);
         dirty[k] = true;
         (v === null ? ref.delete() : ref.set(JSON.parse(JSON.stringify(v)))).then(function () { delete dirty[k]; }, function () { delete dirty[k]; })
           .then(function () { if (i % 10 === 0) setSync('wait', '読み込み中 ' + i + '/' + keys.length); setTimeout(next, 60); });
       })();
-    };
-    r.readAsText(f);
   }
 
   // ================= 写真から追加（claude.ai で開いたときだけ） =================
